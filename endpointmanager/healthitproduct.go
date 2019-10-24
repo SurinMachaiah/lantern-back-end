@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"time"
 
 	"github.com/google/go-cmp/cmp"
@@ -75,15 +76,18 @@ func GetHealthITProduct(id int) (*HealthITProduct, error) {
 		&hitp.CreatedAt,
 		&hitp.UpdatedAt)
 	if err != nil {
-		return nil, err
+		return nil, errors.New("error reading HealthITProduct from storage")
 	}
 
 	err = json.Unmarshal(locationJSON, &hitp.Location)
 	if err != nil {
-		return nil, err
+		return nil, errors.New("error converting location JSON into a Location object")
 	}
 
 	err = json.Unmarshal(certificationCriteriaJSON, &hitp.CertificationCriteria)
+	if err != nil {
+		return nil, errors.New("error converting certification criteria JSON into a string array")
+	}
 
 	return &hitp, err
 }
@@ -134,15 +138,18 @@ func GetHealthITProductUsingNameAndVersion(name string, version string) (*Health
 		&hitp.CreatedAt,
 		&hitp.UpdatedAt)
 	if err != nil {
-		return nil, err
+		return nil, errors.New("error reading HealthITProduct from storage")
 	}
 
 	err = json.Unmarshal(locationJSON, &hitp.Location)
 	if err != nil {
-		return nil, err
+		return nil, errors.New("error converting location JSON into a Location object")
 	}
 
 	err = json.Unmarshal(certificationCriteriaJSON, &hitp.CertificationCriteria)
+	if err != nil {
+		return nil, errors.New("error converting certification criteria JSON into a string array")
+	}
 
 	return &hitp, err
 }
@@ -174,12 +181,12 @@ func (hitp *HealthITProduct) Add() error {
 
 	locationJSON, err := json.Marshal(hitp.Location)
 	if err != nil {
-		return err
+		return errors.New("error converting Location object into JSON string")
 	}
 
 	certificationCriteriaJSON, err := json.Marshal(hitp.CertificationCriteria)
 	if err != nil {
-		return err
+		return errors.New("error converting CertificationCriteria object into JSON string")
 	}
 
 	row := db.QueryRow(sqlStatement,
@@ -198,6 +205,9 @@ func (hitp *HealthITProduct) Add() error {
 		hitp.CHPLID)
 
 	err = row.Scan(&hitp.id)
+	if err != nil {
+		err = errors.New("error adding HealthITProduct to storage and retrieving its ID")
+	}
 
 	return err
 }
@@ -223,12 +233,12 @@ func (hitp *HealthITProduct) Update() error {
 
 	locationJSON, err := json.Marshal(hitp.Location)
 	if err != nil {
-		return err
+		return errors.New("error converting Location object into JSON string")
 	}
 
 	certificationCriteriaJSON, err := json.Marshal(hitp.CertificationCriteria)
 	if err != nil {
-		return err
+		return errors.New("error converting CertificationCriteria object into JSON string")
 	}
 
 	_, err = db.Exec(sqlStatement,
@@ -246,6 +256,9 @@ func (hitp *HealthITProduct) Update() error {
 		locationJSON,
 		certificationCriteriaJSON,
 		hitp.id)
+	if err != nil {
+		err = errors.New("error updating HealthITProduct in storage")
+	}
 
 	return err
 }
@@ -257,6 +270,9 @@ func (hitp *HealthITProduct) Delete() error {
 	WHERE id=$1`
 
 	_, err := db.Exec(sqlStatement, hitp.id)
+	if err != nil {
+		err = errors.New("error deleting HealthITProduct from storage")
+	}
 
 	return err
 }

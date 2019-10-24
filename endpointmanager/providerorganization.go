@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"time"
 )
 
@@ -54,10 +55,13 @@ func GetProviderOrganization(id int) (*ProviderOrganization, error) {
 		&po.CreatedAt,
 		&po.UpdatedAt)
 	if err != nil {
-		return nil, err
+		return nil, errors.New("error reading ProviderOrganization from storage")
 	}
 
 	err = json.Unmarshal(locationJSON, &po.Location)
+	if err != nil {
+		return nil, errors.New("error converting location JSON into a Location object")
+	}
 
 	return &po, err
 }
@@ -83,7 +87,7 @@ func (po *ProviderOrganization) Add() error {
 
 	locationJSON, err := json.Marshal(po.Location)
 	if err != nil {
-		return err
+		return errors.New("error converting Location object into JSON string")
 	}
 
 	row := db.QueryRow(sqlStatement,
@@ -96,6 +100,9 @@ func (po *ProviderOrganization) Add() error {
 		po.Beds)
 
 	err = row.Scan(&po.id)
+	if err != nil {
+		err = errors.New("error adding ProviderOrganization to storage and retrieving its ID")
+	}
 
 	return err
 }
@@ -115,7 +122,7 @@ func (po *ProviderOrganization) Update() error {
 
 	locationJSON, err := json.Marshal(po.Location)
 	if err != nil {
-		return err
+		return errors.New("error converting Location object into JSON string")
 	}
 
 	_, err = db.Exec(sqlStatement,
@@ -127,6 +134,9 @@ func (po *ProviderOrganization) Update() error {
 		po.Ownership,
 		po.Beds,
 		locationJSON)
+	if err != nil {
+		err = errors.New("error updating ProviderOrganization in storage")
+	}
 
 	return err
 }
@@ -138,6 +148,9 @@ func (po *ProviderOrganization) Delete() error {
 	WHERE id=$1`
 
 	_, err := db.Exec(sqlStatement, po.id)
+	if err != nil {
+		err = errors.New("error deleting ProviderOrganization from storage")
+	}
 
 	return err
 }

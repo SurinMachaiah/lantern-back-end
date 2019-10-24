@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"time"
 
 	_ "github.com/lib/pq"
@@ -53,14 +54,17 @@ func GetFHIREndpoint(id int) (*FHIREndpoint, error) {
 		&endpoint.CreatedAt,
 		&endpoint.UpdatedAt)
 	if err != nil {
-		return nil, err
+		return nil, errors.New("error reading FHIREndpoint from storage")
 	}
 
 	err = json.Unmarshal(locationJSON, &endpoint.Location)
 	if err != nil {
-		return nil, err
+		return nil, errors.New("error converting location JSON into a Location object")
 	}
 	err = json.Unmarshal(capabilityStatementJSON, &endpoint.CapabilityStatement)
+	if err != nil {
+		return nil, errors.New("error converting capability statement JSON into a CapabilityStatement object")
+	}
 
 	return &endpoint, err
 }
@@ -96,14 +100,17 @@ func GetFHIREndpointUsingURL(url string) (*FHIREndpoint, error) {
 		&endpoint.CreatedAt,
 		&endpoint.UpdatedAt)
 	if err != nil {
-		return nil, err
+		return nil, errors.New("error reading FHIREndpoint from storage")
 	}
 
 	err = json.Unmarshal(locationJSON, &endpoint.Location)
 	if err != nil {
-		return nil, err
+		return nil, errors.New("error converting location JSON into a Location object")
 	}
 	err = json.Unmarshal(capabilityStatementJSON, &endpoint.CapabilityStatement)
+	if err != nil {
+		return nil, errors.New("error converting capability statement JSON into a CapabilityStatement object")
+	}
 
 	return &endpoint, err
 }
@@ -126,11 +133,11 @@ func (e *FHIREndpoint) Add() error {
 
 	locationJSON, err := json.Marshal(e.Location)
 	if err != nil {
-		return err
+		return errors.New("error converting Location object into JSON string")
 	}
 	capabilityStatementJSON, err := json.Marshal(e.CapabilityStatement)
 	if err != nil {
-		return err
+		return errors.New("error converting CapabilityStatement object into JSON string")
 	}
 
 	row := db.QueryRow(sqlStatement,
@@ -141,6 +148,9 @@ func (e *FHIREndpoint) Add() error {
 		capabilityStatementJSON)
 
 	err = row.Scan(&e.id)
+	if err != nil {
+		err = errors.New("error adding FHIREndpoint to storage and retrieving its ID")
+	}
 
 	return err
 }
@@ -158,11 +168,11 @@ func (e *FHIREndpoint) Update() error {
 
 	locationJSON, err := json.Marshal(e.Location)
 	if err != nil {
-		return err
+		return errors.New("error converting Location object into JSON string")
 	}
 	capabilityStatementJSON, err := json.Marshal(e.CapabilityStatement)
 	if err != nil {
-		return err
+		return errors.New("error converting CapabilityStatement object into JSON string")
 	}
 
 	_, err = db.Exec(sqlStatement,
@@ -172,6 +182,9 @@ func (e *FHIREndpoint) Update() error {
 		locationJSON,
 		capabilityStatementJSON,
 		e.id)
+	if err != nil {
+		err = errors.New("error updating FHIREndpoint in storage")
+	}
 
 	return err
 }
@@ -183,6 +196,9 @@ func (e *FHIREndpoint) Delete() error {
 	WHERE id = $1`
 
 	_, err := db.Exec(sqlStatement, e.id)
+	if err != nil {
+		err = errors.New("error deleting FHIREndpoint from storage")
+	}
 
 	return err
 }
