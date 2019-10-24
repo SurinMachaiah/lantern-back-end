@@ -79,7 +79,7 @@ func Test_PersistProviderOrganization(t *testing.T) {
 	if p1.Equal(po1) {
 		t.Errorf("retrieved UPDATED organization is equal to original organization.")
 	}
-	if p1.UpdatedAt.Equal(p1.CreatedAt) {
+	if p1.GetUpdatedAt().Equal(p1.GetCreatedAt()) {
 		t.Errorf("UpdatedAt is not being properly set on update.")
 	}
 

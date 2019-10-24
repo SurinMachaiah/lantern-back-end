@@ -97,7 +97,7 @@ func Test_PersistFHIREndpoint(t *testing.T) {
 	if e1.Equal(endpoint1) {
 		t.Errorf("retrieved UPDATED endpoint is equal to original endpoint.")
 	}
-	if e1.UpdatedAt.Equal(e1.CreatedAt) {
+	if e1.GetUpdatedAt().Equal(e1.GetCreatedAt()) {
 		t.Errorf("UpdatedAt is not being properly set on update.")
 	}
 

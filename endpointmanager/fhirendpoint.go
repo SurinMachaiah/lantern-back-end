@@ -15,13 +15,13 @@ import (
 // discovered about the IP address of the endpoint.
 type FHIREndpoint struct {
 	id                    int
+	createdAt             time.Time
+	updatedAt             time.Time
 	URL                   string
 	FHIRVersion           string
 	AuthorizationStandard string               // examples: OAuth 2.0, Basic, etc.
 	Location              *Location            // location of the FHIR API endpoint's IP address from ipstack.com.
 	CapabilityStatement   *CapabilityStatement // the JSON representation of the FHIR capability statement
-	CreatedAt             time.Time
-	UpdatedAt             time.Time
 }
 
 // GetFHIREndpoint gets a FHIREndpoint from the database using the database id as a key.
@@ -51,8 +51,8 @@ func GetFHIREndpoint(id int) (*FHIREndpoint, error) {
 		&endpoint.AuthorizationStandard,
 		&locationJSON,
 		&capabilityStatementJSON,
-		&endpoint.CreatedAt,
-		&endpoint.UpdatedAt)
+		&endpoint.createdAt,
+		&endpoint.updatedAt)
 	if err != nil {
 		return nil, errors.New("error reading FHIREndpoint from storage")
 	}
@@ -97,8 +97,8 @@ func GetFHIREndpointUsingURL(url string) (*FHIREndpoint, error) {
 		&endpoint.AuthorizationStandard,
 		&locationJSON,
 		&capabilityStatementJSON,
-		&endpoint.CreatedAt,
-		&endpoint.UpdatedAt)
+		&endpoint.createdAt,
+		&endpoint.updatedAt)
 	if err != nil {
 		return nil, errors.New("error reading FHIREndpoint from storage")
 	}
@@ -118,6 +118,16 @@ func GetFHIREndpointUsingURL(url string) (*FHIREndpoint, error) {
 // GetID returns the database ID for the FHIREndpoint.
 func (e *FHIREndpoint) GetID() int {
 	return e.id
+}
+
+// GetCreatedAt returns the time the FHIREndpoint was created.
+func (e *FHIREndpoint) GetCreatedAt() time.Time {
+	return e.createdAt
+}
+
+// GetUpdatedAt returns the time the FHIREndpoint was last updated.
+func (e *FHIREndpoint) GetUpdatedAt() time.Time {
+	return e.updatedAt
 }
 
 // Add adds the FHIREndpoint to the database.
@@ -203,7 +213,7 @@ func (e *FHIREndpoint) Delete() error {
 	return err
 }
 
-// Equal checks each field of the two FHIREndpoints except for the database ID, CreatedAt and UpdatedAt fields to see if they are equal.
+// Equal checks each field of the two FHIREndpoints except for the database ID, createdAt and updatedAt fields to see if they are equal.
 func (e *FHIREndpoint) Equal(e2 *FHIREndpoint) bool {
 	if e == nil && e2 == nil {
 		return true

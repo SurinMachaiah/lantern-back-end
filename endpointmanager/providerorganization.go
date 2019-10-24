@@ -11,6 +11,8 @@ import (
 // From https://data.medicare.gov/Hospital-Compare/Hospital-General-Information/xubh-q36u
 type ProviderOrganization struct {
 	id               int
+	createdAt        time.Time
+	updatedAt        time.Time
 	Name             string
 	URL              string
 	Location         *Location
@@ -18,8 +20,6 @@ type ProviderOrganization struct {
 	HospitalType     string // only applicable if the OrganizationType is "hospital". Otherwise, this should be "". Examples: "Acute Care", "Critical Access", "Psychiatric", etc.
 	Ownership        string // The organization type that owns the hospital. Only applicable if the OrganizationType is "hospital". Otherwise, this should be nil. Examples: "Volunary non-profit", "Government - State", "Proprietary", etc.
 	Beds             int    // the number of beds that the hospital has. This is only applicable if OrganizationType is "hospital". Otherwise, this should be -1. This is an indicator of relative size of the hospital compared to other hospitals.
-	CreatedAt        time.Time
-	UpdatedAt        time.Time
 }
 
 // GetProviderOrganization gets a ProviderOrganization from the database using the database id as a key.
@@ -52,8 +52,8 @@ func GetProviderOrganization(id int) (*ProviderOrganization, error) {
 		&po.HospitalType,
 		&po.Ownership,
 		&po.Beds,
-		&po.CreatedAt,
-		&po.UpdatedAt)
+		&po.createdAt,
+		&po.updatedAt)
 	if err != nil {
 		return nil, errors.New("error reading ProviderOrganization from storage")
 	}
@@ -69,6 +69,16 @@ func GetProviderOrganization(id int) (*ProviderOrganization, error) {
 // GetID returns the database ID for the ProviderOrganization.
 func (po *ProviderOrganization) GetID() int {
 	return po.id
+}
+
+// GetCreatedAt returns the time the ProviderOrganization was created.
+func (po *ProviderOrganization) GetCreatedAt() time.Time {
+	return po.createdAt
+}
+
+// GetUpdatedAt returns the time the ProviderOrganization was last updated.
+func (po *ProviderOrganization) GetUpdatedAt() time.Time {
+	return po.updatedAt
 }
 
 // Add adds the ProviderOrganization to the database.
@@ -155,7 +165,7 @@ func (po *ProviderOrganization) Delete() error {
 	return err
 }
 
-// Equal checks each field of the two ProviderOrganizations except for the database ID, CreatedAt and UpdatedAt fields to see if they are equal.
+// Equal checks each field of the two ProviderOrganizations except for the database ID, createdAt and updatedAt fields to see if they are equal.
 func (po *ProviderOrganization) Equal(po2 *ProviderOrganization) bool {
 	if po == nil && po2 == nil {
 		return true

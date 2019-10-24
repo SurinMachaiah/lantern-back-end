@@ -13,6 +13,8 @@ import (
 // (CHPL).
 type HealthITProduct struct {
 	id                    int
+	createdAt             time.Time
+	updatedAt             time.Time
 	Name                  string
 	Version               string
 	Developer             string    // the name of the vendor that creates the product.
@@ -26,8 +28,6 @@ type HealthITProduct struct {
 	CertificationEdition  string // the product's certification edition for the ONC Health IT certification program, for example, "2014", "2015".
 	LastModifiedInCHPL    time.Time
 	CHPLID                string // the product's unique ID within the CHPL system.
-	CreatedAt             time.Time
-	UpdatedAt             time.Time
 }
 
 // GetHealthITProduct gets a HealthITProduct from the database using the database ID as a key.
@@ -73,8 +73,8 @@ func GetHealthITProduct(id int) (*HealthITProduct, error) {
 		&hitp.CertificationEdition,
 		&hitp.LastModifiedInCHPL,
 		&hitp.CHPLID,
-		&hitp.CreatedAt,
-		&hitp.UpdatedAt)
+		&hitp.createdAt,
+		&hitp.updatedAt)
 	if err != nil {
 		return nil, errors.New("error reading HealthITProduct from storage")
 	}
@@ -135,8 +135,8 @@ func GetHealthITProductUsingNameAndVersion(name string, version string) (*Health
 		&hitp.CertificationEdition,
 		&hitp.LastModifiedInCHPL,
 		&hitp.CHPLID,
-		&hitp.CreatedAt,
-		&hitp.UpdatedAt)
+		&hitp.createdAt,
+		&hitp.updatedAt)
 	if err != nil {
 		return nil, errors.New("error reading HealthITProduct from storage")
 	}
@@ -157,6 +157,16 @@ func GetHealthITProductUsingNameAndVersion(name string, version string) (*Health
 // GetID returns the database ID for the HealthITProduct.
 func (hitp *HealthITProduct) GetID() int {
 	return hitp.id
+}
+
+// GetCreatedAt returns the time the HealthITProduct was created.
+func (hitp *HealthITProduct) GetCreatedAt() time.Time {
+	return hitp.createdAt
+}
+
+// GetUpdatedAt returns the time the HealthITProduct was last updated.
+func (hitp *HealthITProduct) GetUpdatedAt() time.Time {
+	return hitp.updatedAt
 }
 
 // Add adds the HealthITProduct to the database.
@@ -277,7 +287,7 @@ func (hitp *HealthITProduct) Delete() error {
 	return err
 }
 
-// Equal checks each field of the two HealthITProducts except for the database ID, CreatedAt and UpdatedAt fields to see if they are equal.
+// Equal checks each field of the two HealthITProducts except for the database ID, createdAt and updatedAt fields to see if they are equal.
 func (hitp *HealthITProduct) Equal(hitp2 *HealthITProduct) bool {
 	if hitp == nil && hitp2 == nil {
 		return true

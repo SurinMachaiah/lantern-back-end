@@ -86,7 +86,7 @@ func Test_PersistHealthITProduct(t *testing.T) {
 	if h1.Equal(hitp1) {
 		t.Errorf("retrieved UPDATED product is equal to original product.")
 	}
-	if h1.UpdatedAt.Equal(h1.CreatedAt) {
+	if h1.GetUpdatedAt().Equal(h1.GetCreatedAt()) {
 		t.Errorf("UpdatedAt is not being properly set on update.")
 	}
 
