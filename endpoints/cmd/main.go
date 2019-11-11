@@ -11,9 +11,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/onc-healthit/lantern-back-end/endpoints/fetcher"
-	"github.com/onc-healthit/lantern-back-end/endpoints/querier"
-	"github.com/onc-healthit/lantern-back-end/fhir"
+	"github.com/onc-healthit/lantern-back-end/endpoints/pkg/fetcher"
+	"github.com/onc-healthit/lantern-back-end/endpoints/pkg/fhir"
+	"github.com/onc-healthit/lantern-back-end/endpoints/pkg/querier"
 	"github.com/spf13/viper"
 
 	"github.com/prometheus/client_golang/prometheus"

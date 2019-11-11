@@ -9,7 +9,7 @@ import (
 
 func Test_ParseConformanceStatement(t *testing.T) {
 	var EXPECTED_FHIR_VERSION = "1.0.2"
-	contents, err := ioutil.ReadFile("testdata/DSTU2CapabilityStatement.xml")
+	contents, err := ioutil.ReadFile("../../test/data/DSTU2CapabilityStatement.xml")
 	resp := http.Response{
 		Body: ioutil.NopCloser(bytes.NewBufferString(string(contents))),
 	}
