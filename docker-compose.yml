@@ -31,7 +31,7 @@ services:
     image: prom/prometheus
     volumes:
       - prometheusData:/prometheus
-      - ./prometheus.yml:/etc/prometheus/prometheus.yml 
+      - ./build/prometheus.yml:/etc/prometheus/prometheus.yml 
     depends_on:
       - prometheus_postgresql_adapter
       - pg_prometheus
