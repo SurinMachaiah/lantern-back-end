@@ -1,7 +1,7 @@
 package mock
 
 import (
-	"github.com/onc-healthit/lantern-back-end/lanternmq"
+	"github.com/onc-healthit/lantern-back-end/lanternmq/pkg/lanternmq"
 )
 
 // Ensure MessageQueue implements lanternmq.MessageQueue.

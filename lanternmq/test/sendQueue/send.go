@@ -8,8 +8,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/onc-healthit/lantern-back-end/lanternmq"
-	"github.com/onc-healthit/lantern-back-end/lanternmq/rabbitmq"
+	"github.com/onc-healthit/lantern-back-end/lanternmq/pkg/lanternmq"
+	"github.com/onc-healthit/lantern-back-end/lanternmq/pkg/lanternmq/rabbitmq"
 )
 
 var mq lanternmq.MessageQueue
