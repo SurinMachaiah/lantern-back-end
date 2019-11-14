@@ -37,6 +37,9 @@ func setupConfig() {
 	err = viper.BindEnv("logfile")
 	failOnError(err)
 
+	err = viper.BindEnv("chplapikey")
+	failOnError(err)
+
 	viper.SetDefault("dbhost", "localhost")
 	viper.SetDefault("dbport", 5432)
 	viper.SetDefault("dbuser", "postgres")
