@@ -44,15 +44,29 @@ var chplAPIPath string = "/rest"
 var chplAPICertProdList string = "/collections/certified_products"
 
 func GetCHPLProducts() error {
-	queryArgs := make(url.Values)
+	err := getCertifiedProductCollection()
 
+	return err
+}
+
+func makeCHPLURL() (*url.URL, error) {
+	queryArgs := make(url.Values)
 	chplURL, err := url.Parse(chplDomain)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	apiKey := viper.GetString("chplapikey")
 	queryArgs.Set("api_key", apiKey)
 	chplURL.RawQuery = queryArgs.Encode()
+
+	return chplURL, nil
+}
+
+func getCertifiedProductCollection() error {
+	chplURL, err := makeCHPLURL()
+	if err != nil {
+		return err
+	}
 
 	// request ceritified products list
 	chplURL.Path = chplAPIPath + chplAPICertProdList
