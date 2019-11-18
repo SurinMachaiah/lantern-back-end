@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/onc-healthit/lantern-back-end/endpointmanager/pkg/chplquerier"
 	"github.com/onc-healthit/lantern-back-end/endpointmanager/pkg/endpointmanager/postgresql"
 	log "github.com/sirupsen/logrus"
 
@@ -70,4 +71,9 @@ func main() {
 	}
 	defer store.Close()
 	fmt.Println("Successfully connected!")
+
+	err = chplquerier.GetCHPLProducts()
+	if err != nil {
+		panic(err.Error())
+	}
 }
