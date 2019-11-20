@@ -72,8 +72,8 @@ func main() {
 	defer store.Close()
 	fmt.Println("Successfully connected!")
 
-	err = chplquerier.GetCHPLProducts()
+	err = chplquerier.GetCHPLProducts(store)
 	if err != nil {
-		panic(err.Error())
+		panic(err)
 	}
 }
