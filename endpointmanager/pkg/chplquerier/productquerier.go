@@ -16,9 +16,9 @@ import (
 	"github.com/onc-healthit/lantern-back-end/endpointmanager/pkg/endpointmanager"
 )
 
-const chplAPICertProdListPath string = "/collections/certified_products"
-const delimiter1 string = "☺"
-const delimiter2 string = "☹"
+var chplAPICertProdListPath string = "/collections/certified_products"
+var delimiter1 string = "☺"
+var delimiter2 string = "☹"
 
 var fields [11]string = [11]string{
 	"id",
@@ -52,7 +52,18 @@ type CHPLCertifiedProductList struct {
 }
 
 func GetCHPLProducts(store endpointmanager.HealthITProductStore) error {
-	err := getCertifiedProductCollection(store)
+	fmt.Printf("requesting products\n")
+	prodJSON, err := getProductJSON()
+	if err != nil {
+		return err
+	}
+	prodList, err := convertProductJSONToObj(prodJSON)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("done requestion products\n")
+
+	err = persistProducts(store, prodList)
 
 	return err
 }
@@ -183,6 +194,17 @@ func persistProduct(store endpointmanager.HealthITProductStore, prod *CHPLCertif
 	return nil
 }
 
+func getAPIURL(apiDocStr string) string {
+	apiDocStrs := strings.Split(apiDocStr, delimiter1)
+	if len(apiDocStrs) >= 1 {
+		apiCritAndURL := strings.Split(apiDocStrs[0], delimiter2)
+		if len(apiCritAndURL) == 2 {
+			return apiCritAndURL[1]
+		}
+	}
+	return ""
+}
+
 func prodNeedsUpdate(existingDbProd *endpointmanager.HealthITProduct, newDbProd *endpointmanager.HealthITProduct) (bool, error) {
 	// begin by comparing certification editions.
 	// Assumes certification editions are years, which is the case as of 11/20/19.
@@ -221,32 +243,4 @@ func prodNeedsUpdate(existingDbProd *endpointmanager.HealthITProduct, newDbProd 
 		return false, errors.New("HealthITProducts certification edition and date are equal, but has same number but unequal certification criteria - unknown precendence for updates")
 	}
 	return false, errors.New("HealthITProducts certification edition, date, and criteria lists are equal - unknown precendence for updates")
-}
-
-func getAPIURL(apiDocStr string) string {
-	apiDocStrs := strings.Split(apiDocStr, delimiter1)
-	if len(apiDocStrs) >= 1 {
-		apiCritAndURL := strings.Split(apiDocStrs[0], delimiter2)
-		if len(apiCritAndURL) == 2 {
-			return apiCritAndURL[1]
-		}
-	}
-	return ""
-}
-
-func getCertifiedProductCollection(store endpointmanager.HealthITProductStore) error {
-	fmt.Printf("requesting products\n")
-	prodJSON, err := getProductJSON()
-	if err != nil {
-		return err
-	}
-	prodList, err := convertProductJSONToObj(prodJSON)
-	if err != nil {
-		return err
-	}
-	fmt.Printf("done requestion products\n")
-
-	err = persistProducts(store, prodList)
-
-	return err
 }

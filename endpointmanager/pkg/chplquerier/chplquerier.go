@@ -6,8 +6,8 @@ import (
 	"github.com/spf13/viper"
 )
 
-const chplDomain string = "https://chpl.healthit.gov"
-const chplAPIPath string = "/rest"
+var chplDomain string = "https://chpl.healthit.gov"
+var chplAPIPath string = "/rest"
 
 func makeCHPLURL(path string, queryArgs map[string]string) (*url.URL, error) {
 	queryArgsToSend := url.Values{}
