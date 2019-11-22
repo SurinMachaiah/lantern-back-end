@@ -59,15 +59,14 @@ type Store struct {
 	CloseInvoked bool
 }
 
-// NewStore creates a connection to the postgresql database and adds a reference to the database
-// in store.DB.
+// NewStore creates a mock store.
 func NewStore() (*Store, error) {
 	var store Store
 
 	return &store, nil
 }
 
-// Close closes the postgresql database connection.
+// Close calls the mocked close function.
 func (s *Store) Close() {
 	s.CloseInvoked = true
 	s.CloseFn()
