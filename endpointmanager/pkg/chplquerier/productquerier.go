@@ -122,7 +122,7 @@ func convertProductJSONToObj(prodJSON []byte) (*chplCertifiedProductList, error)
 	return &prodList, nil
 }
 
-func parseHITProd(prod *chplCertifiedProduct) *endpointmanager.HealthITProduct {
+func parseHITProd(prod *chplCertifiedProduct) (*endpointmanager.HealthITProduct, error) {
 	dbProd := endpointmanager.HealthITProduct{
 		Name:                  prod.Product,
 		Version:               prod.Version,
@@ -132,10 +132,15 @@ func parseHITProd(prod *chplCertifiedProduct) *endpointmanager.HealthITProduct {
 		CertificationEdition:  prod.Edition,
 		CHPLID:                prod.ChplProductNumber,
 		CertificationCriteria: strings.Split(prod.CriteriaMet, delimiter1),
-		APIURL:                getAPIURL(prod.APIDocumentation),
 	}
 
-	return &dbProd
+	apiURL, err := getAPIURL(prod.APIDocumentation)
+	if err != nil {
+		return nil, err
+	}
+	dbProd.APIURL = apiURL
+
+	return &dbProd, nil
 }
 
 func persistProducts(store endpointmanager.HealthITProductStore, prodList *chplCertifiedProductList) error {
@@ -159,7 +164,10 @@ func persistProducts(store endpointmanager.HealthITProductStore, prodList *chplC
 
 func persistProduct(store endpointmanager.HealthITProductStore, prod *chplCertifiedProduct) error {
 
-	newDbProd := parseHITProd(prod)
+	newDbProd, err := parseHITProd(prod)
+	if err != nil {
+		return err
+	}
 	existingDbProd, err := store.GetHealthITProductUsingNameAndVersion(prod.Product, prod.Version)
 	// need to add new entry
 	if err == sql.ErrNoRows {
@@ -188,15 +196,24 @@ func persistProduct(store endpointmanager.HealthITProductStore, prod *chplCertif
 }
 
 // assumes that criteria/url chunks are delimited by '☺' and that criteria and url are separated by '☹'.
-func getAPIURL(apiDocStr string) string {
-	apiDocStrs := strings.Split(apiDocStr, delimiter1)
-	if len(apiDocStrs) >= 1 {
-		apiCritAndURL := strings.Split(apiDocStrs[0], delimiter2)
-		if len(apiCritAndURL) == 2 {
-			return apiCritAndURL[1]
-		}
+func getAPIURL(apiDocStr string) (string, error) {
+	if len(apiDocStr) == 0 {
+		return "", nil
 	}
-	return ""
+
+	apiDocStrs := strings.Split(apiDocStr, delimiter1)
+	apiCritAndURL := strings.Split(apiDocStrs[0], delimiter2)
+	if len(apiCritAndURL) == 2 {
+		apiURL := apiCritAndURL[1]
+		// check that it's a valid URL
+		_, err := url.ParseRequestURI(apiURL)
+		if err != nil {
+			return "", err
+		}
+		return apiURL, nil
+	}
+
+	return "", errors.New("Unexpected format for api doc string")
 }
 
 func prodNeedsUpdate(existingDbProd *endpointmanager.HealthITProduct, newDbProd *endpointmanager.HealthITProduct) (bool, error) {

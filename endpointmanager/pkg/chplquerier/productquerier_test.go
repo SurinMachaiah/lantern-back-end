@@ -3,6 +3,7 @@ package chplquerier
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 	"testing"
 	"time"
 
@@ -50,15 +51,10 @@ func Test_makeCHPLProductURLBasic(t *testing.T) {
 	expected := "https://chpl.healthit.gov/rest/collections/certified_products?api_key=tmp_api_key&fields=id%2Cedition%2Cdeveloper%2Cproduct%2Cversion%2CchplProductNumber%2CcertificationStatus%2CcriteriaMet%2CapiDocumentation%2CcertificationDate%2CpracticeType"
 
 	actualURL, err := makeCHPLProductURL()
-	if err != nil {
-		t.Fatal(err)
-	}
+	Assert(t, err == nil, err)
 
 	actual := actualURL.String()
-
-	if expected != actual {
-		t.Fatalf("Expected %s to equal %s.", actual, expected)
-	}
+	Assert(t, expected == actual, fmt.Sprintf("Expected %s to equal %s.", actual, expected))
 }
 
 func Test_makeCHPLProductURLError(t *testing.T) {
@@ -67,9 +63,7 @@ func Test_makeCHPLProductURLError(t *testing.T) {
 	defer func() { chplDomain = chplDomainOrig }()
 
 	_, err := makeCHPLProductURL()
-	if err == nil {
-		t.Fatal("Expected error due to invalid domain name")
-	}
+	Assert(t, err != nil, "Expected error due to invalid domain name")
 }
 
 func Test_convertProductJSONToObj(t *testing.T) {
@@ -121,20 +115,12 @@ func Test_convertProductJSONToObj(t *testing.T) {
 	}
 
 	prodList, err := convertProductJSONToObj([]byte(prodListJSON))
-	if err != nil {
-		t.Fatal(err)
-	}
+	Assert(t, err == nil, err)
+	Assert(t, prodList.Results != nil, "Expected results field to be filled out for  product list.")
+	Assert(t, len(prodList.Results) == len(expectedProdList.Results), fmt.Sprintf("Number of products is %d. Should be %d.", len(prodList.Results), len(expectedProdList.Results)))
 
-	if prodList.Results == nil {
-		t.Fatalf("Expected results field to be filled out for  product list.")
-	}
-	if len(prodList.Results) != len(expectedProdList.Results) {
-		t.Fatalf("Number of products is %d. Should be %d.", len(prodList.Results), len(expectedProdList.Results))
-	}
 	for i, prod := range prodList.Results {
-		if prod != expectedProdList.Results[i] {
-			t.Fatalf("Expected parsed products to equal expected products.")
-		}
+		Assert(t, prod == expectedProdList.Results[i], "Expected parsed products to equal expected products.")
 	}
 }
 
@@ -145,31 +131,45 @@ func Test_convertProductJSONToObjError(t *testing.T) {
 		`
 
 	_, err := convertProductJSONToObj([]byte(malformedJSON))
-	if err == nil {
-		t.Fatalf("Expected malformed JSON error")
-	}
+	Assert(t, err != nil, "Expected malformed JSON error")
 }
 
 func Test_parseHITProd(t *testing.T) {
 	prod := testCHPLProd
-
 	expectedHITProd := testHITP
 
-	hitProd := parseHITProd(&prod)
+	hitProd, err := parseHITProd(&prod)
+	Assert(t, err == nil, err)
+	Assert(t, hitProd.Equal(&expectedHITProd), "CHPL Product did not parse into HealthITProduct as expected.")
 
-	if !hitProd.Equal(&expectedHITProd) {
-		t.Fatalf("CHPL Product did not parse into HealthITProduct as expected.")
-	}
+	// provide bad api doc string to cause error
+	prod.APIDocumentation = "170.315 (g)(7)☹.com/Carefluence-OpenAPI-Documentation.html☺170.315 (g)(8)☹http://carefluence.com/Carefluence-OpenAPI-Documentation.html☺170.315 (g)(9)☹http://carefluence.com/Carefluence-OpenAPI-Documentation.html"
+	_, err = parseHITProd(&prod)
+	Assert(t, err != nil, "Expected api doc parsing error")
 }
 
 func Test_getAPIURL(t *testing.T) {
 	apiDocString := "170.315 (g)(7)☹http://carefluence.com/Carefluence-OpenAPI-Documentation.html☺170.315 (g)(8)☹http://carefluence.com/Carefluence-OpenAPI-Documentation.html☺170.315 (g)(9)☹http://carefluence.com/Carefluence-OpenAPI-Documentation.html"
 	expectedURL := "http://carefluence.com/Carefluence-OpenAPI-Documentation.html"
-	actualURL := getAPIURL(apiDocString)
 
-	if expectedURL != actualURL {
-		t.Fatalf("Expected '%s'. Got '%s'.", expectedURL, actualURL)
-	}
+	actualURL, err := getAPIURL(apiDocString)
+	Assert(t, err == nil, err)
+	Assert(t, expectedURL == actualURL, fmt.Sprintf("Expected '%s'. Got '%s'.", expectedURL, actualURL))
+
+	// provide bad string - unexpected delimeter
+	apiDocString = "170.315 (g)(7),http://carefluence.com/Carefluence-OpenAPI-Documentation.html"
+
+	actualURL, err = getAPIURL(apiDocString)
+	Assert(t, err != nil, "Expected error due to malformed api doc string")
+
+	// provide empty string
+	apiDocString = ""
+	expectedURL = ""
+
+	actualURL, err = getAPIURL(apiDocString)
+	Assert(t, err == nil, err)
+	Assert(t, expectedURL == actualURL, fmt.Sprintf("Expected an empty string"))
+
 }
 
 func Test_prodNeedsUpdate(t *testing.T) {
@@ -181,176 +181,56 @@ func Test_prodNeedsUpdate(t *testing.T) {
 		err         error
 	}
 
+	expectedResults := []expectedResult{}
+
 	base := testHITP
 
 	same := testHITP
+	expectedResults = append(expectedResults, expectedResult{name: "same", hitProd: same, needsUpdate: false, err: nil})
 
 	badEdition := testHITP
 	badEdition.CertificationEdition = "asdf"
+	expectedResults = append(expectedResults, expectedResult{name: "badEdition", hitProd: badEdition, needsUpdate: false, err: errors.New(`strconv.Atoi: parsing "asdf": invalid syntax`)})
 
-	// base := endpointmanager.HealthITProduct{
-	// 	Name:                  "Carefluence Open API",
-	// 	Version:               "1",
-	// 	Developer:             "Carefluence",
-	// 	CertificationStatus:   "Active",
-	// 	CertificationDate:     time.Date(2016, 7, 1, 0, 0, 0, 0, time.UTC),
-	// 	CertificationEdition:  "2014",
-	// 	CHPLID:                "15.04.04.2657.Care.01.00.0.160701",
-	// 	CertificationCriteria: []string{"170.315 (d)(1)", "170.315 (d)(10)", "170.315 (d)(9)", "170.315 (g)(4)", "170.315 (g)(5)", "170.315 (g)(6)", "170.315 (g)(7)", "170.315 (g)(8)", "170.315 (g)(9)"},
-	// 	APIURL:                "http://carefluence.com/Carefluence-OpenAPI-Documentation.html",
-	// }
+	editionAfter := testHITP
+	editionAfter.CertificationEdition = "2015"
+	expectedResults = append(expectedResults, expectedResult{name: "editionAfter", hitProd: editionAfter, needsUpdate: true, err: nil})
 
-	// same := endpointmanager.HealthITProduct{
-	// 	Name:                  "Carefluence Open API",
-	// 	Version:               "1",
-	// 	Developer:             "Carefluence",
-	// 	CertificationStatus:   "Active",
-	// 	CertificationDate:     time.Date(2016, 7, 1, 0, 0, 0, 0, time.UTC),
-	// 	CertificationEdition:  "2014",
-	// 	CHPLID:                "15.04.04.2657.Care.01.00.0.160701",
-	// 	CertificationCriteria: []string{"170.315 (d)(1)", "170.315 (d)(10)", "170.315 (d)(9)", "170.315 (g)(4)", "170.315 (g)(5)", "170.315 (g)(6)", "170.315 (g)(7)", "170.315 (g)(8)", "170.315 (g)(9)"},
-	// 	APIURL:                "http://carefluence.com/Carefluence-OpenAPI-Documentation.html",
-	// }
+	dateAfter := testHITP
+	dateAfter.CertificationDate = time.Date(2016, 9, 1, 0, 0, 0, 0, time.UTC)
+	expectedResults = append(expectedResults, expectedResult{name: "dateAfter", hitProd: dateAfter, needsUpdate: true, err: nil})
 
-	// badEdition := endpointmanager.HealthITProduct{
-	// 	Name:                  "Carefluence Open API",
-	// 	Version:               "1",
-	// 	Developer:             "Carefluence",
-	// 	CertificationStatus:   "Active",
-	// 	CertificationDate:     time.Date(2016, 7, 1, 0, 0, 0, 0, time.UTC),
-	// 	CertificationEdition:  "asdf",
-	// 	CHPLID:                "15.04.04.2657.Care.01.00.0.160701",
-	// 	CertificationCriteria: []string{"170.315 (d)(1)", "170.315 (d)(10)", "170.315 (d)(9)", "170.315 (g)(4)", "170.315 (g)(5)", "170.315 (g)(6)", "170.315 (g)(7)", "170.315 (g)(8)", "170.315 (g)(9)"},
-	// 	APIURL:                "http://carefluence.com/Carefluence-OpenAPI-Documentation.html",
-	// }
+	critListLonger := testHITP
+	critListLonger.CertificationCriteria = []string{"170.315 (d)(1)", "170.315 (d)(10)", "170.315 (d)(9)", "170.315 (g)(4)", "170.315 (g)(5)", "170.315 (g)(6)", "170.315 (g)(7)", "170.315 (g)(8)", "170.315 (g)(9)", "170.315 (g)(10)"}
+	expectedResults = append(expectedResults, expectedResult{name: "critListLonger", hitProd: critListLonger, needsUpdate: true, err: nil})
 
-	editionAfter := endpointmanager.HealthITProduct{
-		Name:                  "Carefluence Open API",
-		Version:               "1",
-		Developer:             "Carefluence",
-		CertificationStatus:   "Active",
-		CertificationDate:     time.Date(2016, 7, 1, 0, 0, 0, 0, time.UTC),
-		CertificationEdition:  "2015",
-		CHPLID:                "15.04.04.2657.Care.01.00.0.160701",
-		CertificationCriteria: []string{"170.315 (d)(1)", "170.315 (d)(10)", "170.315 (d)(9)", "170.315 (g)(4)", "170.315 (g)(5)", "170.315 (g)(6)", "170.315 (g)(7)", "170.315 (g)(8)", "170.315 (g)(9)"},
-		APIURL:                "http://carefluence.com/Carefluence-OpenAPI-Documentation.html",
-	}
+	editionBefore := testHITP
+	editionBefore.CertificationEdition = "2011"
+	expectedResults = append(expectedResults, expectedResult{name: "editionBefore", hitProd: editionBefore, needsUpdate: false, err: nil})
 
-	dateAfter := endpointmanager.HealthITProduct{
-		Name:                  "Carefluence Open API",
-		Version:               "1",
-		Developer:             "Carefluence",
-		CertificationStatus:   "Active",
-		CertificationDate:     time.Date(2016, 9, 1, 0, 0, 0, 0, time.UTC),
-		CertificationEdition:  "2014",
-		CHPLID:                "15.04.04.2657.Care.01.00.0.160701",
-		CertificationCriteria: []string{"170.315 (d)(1)", "170.315 (d)(10)", "170.315 (d)(9)", "170.315 (g)(4)", "170.315 (g)(5)", "170.315 (g)(6)", "170.315 (g)(7)", "170.315 (g)(8)", "170.315 (g)(9)"},
-		APIURL:                "http://carefluence.com/Carefluence-OpenAPI-Documentation.html",
-	}
+	dateBefore := testHITP
+	dateBefore.CertificationDate = time.Date(2016, 5, 1, 0, 0, 0, 0, time.UTC)
+	expectedResults = append(expectedResults, expectedResult{name: "dateBefore", hitProd: dateBefore, needsUpdate: false, err: nil})
 
-	critListLonger := endpointmanager.HealthITProduct{
-		Name:                  "Carefluence Open API",
-		Version:               "1",
-		Developer:             "Carefluence",
-		CertificationStatus:   "Active",
-		CertificationDate:     time.Date(2016, 7, 1, 0, 0, 0, 0, time.UTC),
-		CertificationEdition:  "2014",
-		CHPLID:                "15.04.04.2657.Care.01.00.0.160701",
-		CertificationCriteria: []string{"170.315 (d)(1)", "170.315 (d)(10)", "170.315 (d)(9)", "170.315 (g)(4)", "170.315 (g)(5)", "170.315 (g)(6)", "170.315 (g)(7)", "170.315 (g)(8)", "170.315 (g)(9)", "170.315 (g)(10)"},
-		APIURL:                "http://carefluence.com/Carefluence-OpenAPI-Documentation.html",
-	}
+	critListShorter := testHITP
+	critListShorter.CertificationCriteria = []string{"170.315 (d)(1)", "170.315 (d)(10)", "170.315 (d)(9)", "170.315 (g)(4)", "170.315 (g)(5)", "170.315 (g)(6)", "170.315 (g)(7)", "170.315 (g)(8)"}
+	expectedResults = append(expectedResults, expectedResult{name: "critListShorter", hitProd: critListShorter, needsUpdate: false, err: nil})
 
-	editionBefore := endpointmanager.HealthITProduct{
-		Name:                  "Carefluence Open API",
-		Version:               "1",
-		Developer:             "Carefluence",
-		CertificationStatus:   "Active",
-		CertificationDate:     time.Date(2016, 7, 1, 0, 0, 0, 0, time.UTC),
-		CertificationEdition:  "2011",
-		CHPLID:                "15.04.04.2657.Care.01.00.0.160701",
-		CertificationCriteria: []string{"170.315 (d)(1)", "170.315 (d)(10)", "170.315 (d)(9)", "170.315 (g)(4)", "170.315 (g)(5)", "170.315 (g)(6)", "170.315 (g)(7)", "170.315 (g)(8)", "170.315 (g)(9)"},
-		APIURL:                "http://carefluence.com/Carefluence-OpenAPI-Documentation.html",
-	}
+	critListDiff := testHITP
+	critListDiff.CertificationCriteria = []string{"170.315 (d)(1)", "170.315 (d)(10)", "170.315 (d)(9)", "170.315 (g)(4)", "170.315 (g)(5)", "170.315 (g)(6)", "170.315 (g)(7)", "170.315 (g)(8)", "170.315 (g)(10)"}
+	expectedResults = append(expectedResults, expectedResult{name: "critListDiff", hitProd: critListDiff, needsUpdate: false, err: errors.New("HealthITProducts certification edition and date are equal, but has same number but unequal certification criteria - unknown precendence for updates")})
 
-	dateBefore := endpointmanager.HealthITProduct{
-		Name:                  "Carefluence Open API",
-		Version:               "1",
-		Developer:             "Carefluence",
-		CertificationStatus:   "Active",
-		CertificationDate:     time.Date(2016, 5, 1, 0, 0, 0, 0, time.UTC),
-		CertificationEdition:  "2014",
-		CHPLID:                "15.04.04.2657.Care.01.00.0.160701",
-		CertificationCriteria: []string{"170.315 (d)(1)", "170.315 (d)(10)", "170.315 (d)(9)", "170.315 (g)(4)", "170.315 (g)(5)", "170.315 (g)(6)", "170.315 (g)(7)", "170.315 (g)(8)", "170.315 (g)(9)"},
-		APIURL:                "http://carefluence.com/Carefluence-OpenAPI-Documentation.html",
-	}
+	chplID := testHITP
+	chplID.CHPLID = "15.04.04.2657.Care.01.00.0.160733"
+	expectedResults = append(expectedResults, expectedResult{name: "chplID", hitProd: chplID, needsUpdate: false, err: nil})
 
-	critListShorter := endpointmanager.HealthITProduct{
-		Name:                  "Carefluence Open API",
-		Version:               "1",
-		Developer:             "Carefluence",
-		CertificationStatus:   "Active",
-		CertificationDate:     time.Date(2016, 7, 1, 0, 0, 0, 0, time.UTC),
-		CertificationEdition:  "2014",
-		CHPLID:                "15.04.04.2657.Care.01.00.0.160701",
-		CertificationCriteria: []string{"170.315 (d)(1)", "170.315 (d)(10)", "170.315 (d)(9)", "170.315 (g)(4)", "170.315 (g)(5)", "170.315 (g)(6)", "170.315 (g)(7)", "170.315 (g)(8)"},
-		APIURL:                "http://carefluence.com/Carefluence-OpenAPI-Documentation.html",
-	}
-
-	critListDiff := endpointmanager.HealthITProduct{
-		Name:                  "Carefluence Open API",
-		Version:               "1",
-		Developer:             "Carefluence",
-		CertificationStatus:   "Active",
-		CertificationDate:     time.Date(2016, 7, 1, 0, 0, 0, 0, time.UTC),
-		CertificationEdition:  "2014",
-		CHPLID:                "15.04.04.2657.Care.01.00.0.160701",
-		CertificationCriteria: []string{"170.315 (d)(1)", "170.315 (d)(10)", "170.315 (d)(9)", "170.315 (g)(4)", "170.315 (g)(5)", "170.315 (g)(6)", "170.315 (g)(7)", "170.315 (g)(8)", "170.315 (g)(10)"},
-		APIURL:                "http://carefluence.com/Carefluence-OpenAPI-Documentation.html",
-	}
-
-	chplID := endpointmanager.HealthITProduct{
-		Name:                  "Carefluence Open API",
-		Version:               "1",
-		Developer:             "Carefluence",
-		CertificationStatus:   "Active",
-		CertificationDate:     time.Date(2016, 7, 1, 0, 0, 0, 0, time.UTC),
-		CertificationEdition:  "2014",
-		CHPLID:                "15.04.04.2657.Care.01.00.0.160733",
-		CertificationCriteria: []string{"170.315 (d)(1)", "170.315 (d)(10)", "170.315 (d)(9)", "170.315 (g)(4)", "170.315 (g)(5)", "170.315 (g)(6)", "170.315 (g)(7)", "170.315 (g)(8)", "170.315 (g)(9)"},
-		APIURL:                "http://carefluence.com/Carefluence-OpenAPI-Documentation.html",
-	}
-
-	certStatus := endpointmanager.HealthITProduct{
-		Name:                  "Carefluence Open API",
-		Version:               "1",
-		Developer:             "Carefluence",
-		CertificationStatus:   "Retired",
-		CertificationDate:     time.Date(2016, 7, 1, 0, 0, 0, 0, time.UTC),
-		CertificationEdition:  "2014",
-		CHPLID:                "15.04.04.2657.Care.01.00.0.160701",
-		CertificationCriteria: []string{"170.315 (d)(1)", "170.315 (d)(10)", "170.315 (d)(9)", "170.315 (g)(4)", "170.315 (g)(5)", "170.315 (g)(6)", "170.315 (g)(7)", "170.315 (g)(8)", "170.315 (g)(9)"},
-		APIURL:                "http://carefluence.com/Carefluence-OpenAPI-Documentation.html",
-	}
-
-	expectedResults := []expectedResult{
-		expectedResult{name: "same", hitProd: same, needsUpdate: false, err: nil},
-		expectedResult{name: "badEdition", hitProd: badEdition, needsUpdate: false, err: errors.New(`strconv.Atoi: parsing "asdf": invalid syntax`)},
-		expectedResult{name: "editionAfter", hitProd: editionAfter, needsUpdate: true, err: nil},
-		expectedResult{name: "dateAfter", hitProd: dateAfter, needsUpdate: true, err: nil},
-		expectedResult{name: "critListLonger", hitProd: critListLonger, needsUpdate: true, err: nil},
-		expectedResult{name: "editionBefore", hitProd: editionBefore, needsUpdate: false, err: nil},
-		expectedResult{name: "dateBefore", hitProd: dateBefore, needsUpdate: false, err: nil},
-		expectedResult{name: "critListShorter", hitProd: critListShorter, needsUpdate: false, err: nil},
-		expectedResult{name: "critListDiff", hitProd: critListDiff, needsUpdate: false, err: errors.New("HealthITProducts certification edition and date are equal, but has same number but unequal certification criteria - unknown precendence for updates")},
-		expectedResult{name: "chplID", hitProd: chplID, needsUpdate: false, err: nil},
-		expectedResult{name: "certStatus", hitProd: certStatus, needsUpdate: false, err: errors.New("HealthITProducts certification edition, date, and criteria lists are equal - unknown precendence for updates")},
-	}
+	certStatus := testHITP
+	certStatus.CertificationStatus = "Retired"
+	expectedResults = append(expectedResults, expectedResult{name: "certStatus", hitProd: certStatus, needsUpdate: false, err: errors.New("HealthITProducts certification edition, date, and criteria lists are equal - unknown precendence for updates")})
 
 	for _, expRes := range expectedResults {
 		needsUpdate, err := prodNeedsUpdate(&base, &(expRes.hitProd))
-		if needsUpdate != expRes.needsUpdate {
-			t.Fatalf("For 'prodNeedsUpdate' using %s, expected %t and got %t.", expRes.name, expRes.needsUpdate, needsUpdate)
-		}
+		Assert(t, needsUpdate == expRes.needsUpdate, fmt.Sprintf("For 'prodNeedsUpdate' using %s, expected %t and got %t.", expRes.name, expRes.needsUpdate, needsUpdate))
 		if err != nil && expRes.err == nil {
 			t.Fatalf("For 'prodNeedsUpdate' using %s, did not expect error but got error\n%v", expRes.name, err)
 		}
@@ -362,28 +242,15 @@ func Test_prodNeedsUpdate(t *testing.T) {
 		}
 	}
 
-	baseBadEdition := endpointmanager.HealthITProduct{
-		Name:                  "Carefluence Open API",
-		Version:               "1",
-		Developer:             "Carefluence",
-		CertificationStatus:   "Active",
-		CertificationDate:     time.Date(2016, 7, 1, 0, 0, 0, 0, time.UTC),
-		CertificationEdition:  "asdf",
-		CHPLID:                "15.04.04.2657.Care.01.00.0.160701",
-		CertificationCriteria: []string{"170.315 (d)(1)", "170.315 (d)(10)", "170.315 (d)(9)", "170.315 (g)(4)", "170.315 (g)(5)", "170.315 (g)(6)", "170.315 (g)(7)", "170.315 (g)(8)", "170.315 (g)(9)"},
-		APIURL:                "http://carefluence.com/Carefluence-OpenAPI-Documentation.html",
-	}
+	baseBadEdition := testHITP
+	baseBadEdition.CertificationEdition = "asdf"
 	name := "baseBadEdition"
 	expectedNeedsUpdate := false
 	expectedErrorStr := `strconv.Atoi: parsing "asdf": invalid syntax`
 
 	needsUpdate, err := prodNeedsUpdate(&baseBadEdition, &base)
-	if needsUpdate != expectedNeedsUpdate {
-		t.Fatalf("For 'prodNeedsUpdate' using %s, expected %t and got %t.", name, expectedNeedsUpdate, needsUpdate)
-	}
-	if err == nil || err.Error() != expectedErrorStr {
-		t.Fatalf("For 'prodNeedsUpdate' using %s, expected error\n%v\nAnd got error\n%v", name, expectedErrorStr, err)
-	}
+	Assert(t, needsUpdate == expectedNeedsUpdate, fmt.Sprintf("For 'prodNeedsUpdate' using %s, expected %t and got %t.", name, expectedNeedsUpdate, needsUpdate))
+	Assert(t, err != nil && err.Error() == expectedErrorStr, fmt.Sprintf("For 'prodNeedsUpdate' using %s, expected error\n%v\nAnd got error\n%v", name, expectedErrorStr, err))
 }
 
 func Test_persistProduct(t *testing.T) {
@@ -397,29 +264,29 @@ func Test_persistProduct(t *testing.T) {
 
 	// check that new item is stored
 	err = persistProduct(store, &prod)
-	AssertTrue(t, err == nil, err)
-	AssertTrue(t, len(store.(*mockStore).data) == 1, "did not store data as expected")
-	AssertTrue(t, hitp.Equal(store.(*mockStore).data[0]), "stored data does not equal expected store data")
+	Assert(t, err == nil, err)
+	Assert(t, len(store.(*mockStore).data) == 1, "did not store data as expected")
+	Assert(t, hitp.Equal(store.(*mockStore).data[0]), "stored data does not equal expected store data")
 
 	// check that newer updated item replaces item
 	prod.Edition = "2015"
 	hitp.CertificationEdition = "2015"
 	err = persistProduct(store, &prod)
-	AssertTrue(t, err == nil, err)
-	AssertTrue(t, len(store.(*mockStore).data) == 1, "did not store data as expected")
-	AssertTrue(t, hitp.Equal(store.(*mockStore).data[0]), "stored data does not equal expected store data")
+	Assert(t, err == nil, err)
+	Assert(t, len(store.(*mockStore).data) == 1, "did not store data as expected")
+	Assert(t, hitp.Equal(store.(*mockStore).data[0]), "stored data does not equal expected store data")
 
 	// check that older updated item does not replace item
 	prod.Edition = "2014"
 	hitp.CertificationEdition = "2015" // keeping 2015
 	err = persistProduct(store, &prod)
-	AssertTrue(t, err == nil, err)
-	AssertTrue(t, len(store.(*mockStore).data) == 1, "did not store data as expected")
-	AssertTrue(t, hitp.Equal(store.(*mockStore).data[0]), "stored data does not equal expected store data")
+	Assert(t, err == nil, err)
+	Assert(t, len(store.(*mockStore).data) == 1, "did not store data as expected")
+	Assert(t, hitp.Equal(store.(*mockStore).data[0]), "stored data does not equal expected store data")
 
 }
 
-func AssertTrue(t *testing.T, boolStatement bool, errorValue interface{}) {
+func Assert(t *testing.T, boolStatement bool, errorValue interface{}) {
 	if !boolStatement {
 		t.Fatalf("%s: %v", t.Name(), errorValue)
 	}
