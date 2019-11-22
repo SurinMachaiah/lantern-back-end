@@ -33,7 +33,7 @@ var fields [11]string = [11]string{
 	"certificationDate",
 	"practiceType"}
 
-type CHPLCertifiedProduct struct {
+type chplCertifiedProduct struct {
 	ID                  int    `json:"id"`
 	ChplProductNumber   string `json:"chplProductNumber"`
 	Edition             string `json:"edition"`
@@ -47,8 +47,8 @@ type CHPLCertifiedProduct struct {
 	APIDocumentation    string `json:"apiDocumentation"`
 }
 
-type CHPLCertifiedProductList struct {
-	Results []CHPLCertifiedProduct `json:"results"`
+type chplCertifiedProductList struct {
+	Results []chplCertifiedProduct `json:"results"`
 }
 
 func GetCHPLProducts(store endpointmanager.HealthITProductStore) error {
@@ -108,8 +108,8 @@ func getProductJSON() ([]byte, error) {
 	return body, nil
 }
 
-func convertProductJSONToObj(prodJSON []byte) (*CHPLCertifiedProductList, error) {
-	var prodList CHPLCertifiedProductList
+func convertProductJSONToObj(prodJSON []byte) (*chplCertifiedProductList, error) {
+	var prodList chplCertifiedProductList
 
 	fmt.Printf("unmarshalling json\n")
 
@@ -122,30 +122,23 @@ func convertProductJSONToObj(prodJSON []byte) (*CHPLCertifiedProductList, error)
 	return &prodList, nil
 }
 
-func parseHITProd(prod *CHPLCertifiedProduct) *endpointmanager.HealthITProduct {
-	dbProd := new(endpointmanager.HealthITProduct)
+func parseHITProd(prod *chplCertifiedProduct) *endpointmanager.HealthITProduct {
+	dbProd := endpointmanager.HealthITProduct{
+		Name:                  prod.Product,
+		Version:               prod.Version,
+		Developer:             prod.Developer,
+		CertificationStatus:   prod.CertificationStatus,
+		CertificationDate:     time.Unix(prod.CertificationDate/1000, 0),
+		CertificationEdition:  prod.Edition,
+		CHPLID:                prod.ChplProductNumber,
+		CertificationCriteria: strings.Split(prod.CriteriaMet, delimiter1),
+		APIURL:                getAPIURL(prod.APIDocumentation),
+	}
 
-	dbProd.Name = prod.Product
-	dbProd.Version = prod.Version
-	dbProd.Developer = prod.Developer
-	dbProd.CertificationStatus = prod.CertificationStatus
-	dbProd.CertificationDate = time.Unix(prod.CertificationDate/1000, 0)
-	dbProd.CertificationEdition = prod.Edition
-	dbProd.CHPLID = prod.ChplProductNumber
-	dbProd.CertificationCriteria = strings.Split(prod.CriteriaMet, delimiter1)
-	dbProd.APIURL = getAPIURL(prod.APIDocumentation)
-
-	return dbProd
+	return &dbProd
 }
 
-func persistProducts(store endpointmanager.HealthITProductStore, prodList *CHPLCertifiedProductList) error {
-	fmt.Printf("%d\n", len(prodList.Results))
-	prod1 := prodList.Results[7958]
-	prod2 := prodList.Results[7959]
-
-	fmt.Printf("prod 1 id: %d", prod1.ID)
-	fmt.Printf("prod 2 id: %d", prod2.ID)
-
+func persistProducts(store endpointmanager.HealthITProductStore, prodList *chplCertifiedProductList) error {
 	for i, prod := range prodList.Results {
 
 		if i%100 == 0 {
@@ -164,7 +157,7 @@ func persistProducts(store endpointmanager.HealthITProductStore, prodList *CHPLC
 	return nil
 }
 
-func persistProduct(store endpointmanager.HealthITProductStore, prod *CHPLCertifiedProduct) error {
+func persistProduct(store endpointmanager.HealthITProductStore, prod *chplCertifiedProduct) error {
 
 	newDbProd := parseHITProd(prod)
 	existingDbProd, err := store.GetHealthITProductUsingNameAndVersion(prod.Product, prod.Version)
@@ -194,6 +187,7 @@ func persistProduct(store endpointmanager.HealthITProductStore, prod *CHPLCertif
 	return nil
 }
 
+// assumes that criteria/url chunks are delimited by '☺' and that criteria and url are separated by '☹'.
 func getAPIURL(apiDocStr string) string {
 	apiDocStrs := strings.Split(apiDocStr, delimiter1)
 	if len(apiDocStrs) >= 1 {
@@ -206,6 +200,11 @@ func getAPIURL(apiDocStr string) string {
 }
 
 func prodNeedsUpdate(existingDbProd *endpointmanager.HealthITProduct, newDbProd *endpointmanager.HealthITProduct) (bool, error) {
+	// check if the two are equal.
+	if existingDbProd.Equal(newDbProd) {
+		return false, nil
+	}
+
 	// begin by comparing certification editions.
 	// Assumes certification editions are years, which is the case as of 11/20/19.
 	existingCertEdition, err := strconv.Atoi(existingDbProd.CertificationEdition)
@@ -234,7 +233,7 @@ func prodNeedsUpdate(existingDbProd *endpointmanager.HealthITProduct, newDbProd 
 	// cert dates are the same. checking certification criteria lists. if new prod has more criteria, should update.
 	if len(existingDbProd.CertificationCriteria) < len(newDbProd.CertificationCriteria) {
 		return true, nil
-	} else if len(existingDbProd.CertificationCriteria) < len(newDbProd.CertificationCriteria) {
+	} else if len(existingDbProd.CertificationCriteria) > len(newDbProd.CertificationCriteria) {
 		return false, nil
 	}
 
