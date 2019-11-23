@@ -2,13 +2,16 @@ package chplquerier
 
 import (
 	"database/sql"
-	"errors"
 	"fmt"
 	"testing"
 	"time"
 
+	"github.com/pkg/errors"
+
 	"github.com/onc-healthit/lantern-back-end/endpointmanager/pkg/endpointmanager"
 	"github.com/onc-healthit/lantern-back-end/endpointmanager/pkg/endpointmanager/mock"
+
+	logtest "github.com/sirupsen/logrus/hooks/test"
 
 	"github.com/spf13/viper"
 )
@@ -237,8 +240,11 @@ func Test_prodNeedsUpdate(t *testing.T) {
 		if err == nil && expRes.err != nil {
 			t.Fatalf("For 'prodNeedsUpdate' using %s, did not receive error but expected error\n%v", expRes.name, expRes.err)
 		}
-		if err != nil && expRes.err != nil && err.Error() != expRes.err.Error() {
-			t.Fatalf("For 'prodNeedsUpdate' using %s, expected error\n%v\nAnd got error\n%v", expRes.name, expRes.err, err)
+		if err != nil && expRes.err != nil {
+			origErr := errors.Cause(err)
+			if origErr.Error() != expRes.err.Error() {
+				t.Fatalf("For 'prodNeedsUpdate' using %s, expected error\n%v\nAnd got error\n%v", expRes.name, expRes.err, origErr)
+			}
 		}
 	}
 
@@ -250,7 +256,9 @@ func Test_prodNeedsUpdate(t *testing.T) {
 
 	needsUpdate, err := prodNeedsUpdate(&baseBadEdition, &base)
 	Assert(t, needsUpdate == expectedNeedsUpdate, fmt.Sprintf("For 'prodNeedsUpdate' using %s, expected %t and got %t.", name, expectedNeedsUpdate, needsUpdate))
-	Assert(t, err != nil && err.Error() == expectedErrorStr, fmt.Sprintf("For 'prodNeedsUpdate' using %s, expected error\n%v\nAnd got error\n%v", name, expectedErrorStr, err))
+	Assert(t, err != nil, "Expected an error")
+	origErr := errors.Cause(err)
+	Assert(t, origErr.Error() == expectedErrorStr, fmt.Sprintf("For 'prodNeedsUpdate' using %s, expected error\n%v\nAnd got error\n%v", name, expectedErrorStr, origErr))
 }
 
 func Test_persistProduct(t *testing.T) {
@@ -284,6 +292,58 @@ func Test_persistProduct(t *testing.T) {
 	Assert(t, len(store.(*mockStore).data) == 1, "did not store data as expected")
 	Assert(t, hitp.Equal(store.(*mockStore).data[0]), "stored data does not equal expected store data")
 
+	// check that malformed product throws error
+	prod.APIDocumentation = "170.315 (g)(7),http://carefluence.com/Carefluence-OpenAPI-Documentation.html"
+	err = persistProduct(store, &prod)
+	Assert(t, err != nil, "expected error parsing product")
+
+	// check that ambiguous update throws error
+	prod = testCHPLProd
+	prod.Edition = "2015"
+	prod.CertificationStatus = "Retired"
+	err = persistProduct(store, &prod)
+	Assert(t, err != nil, "expected error updating product")
+}
+
+func Test_persistProducts(t *testing.T) {
+	store, err := createStore()
+	if err != nil {
+		t.Fatalf("create mock store error\n%v", err)
+	}
+
+	// standard persist
+	prod1 := testCHPLProd
+	prod2 := testCHPLProd
+	prod2.Product = "another prod"
+
+	prodList := chplCertifiedProductList{Results: []chplCertifiedProduct{prod1, prod2}}
+
+	err = persistProducts(store, &prodList)
+	Assert(t, err == nil, err)
+
+	Assert(t, len(store.(*mockStore).data) == 2, "did not persist two products as expected")
+	Assert(t, store.(*mockStore).data[0].Name == testCHPLProd.Product, "Did not store first product as expected")
+	Assert(t, store.(*mockStore).data[1].Name == "another prod", "Did not store first product as expected")
+
+	// persist with errors
+	hook := logtest.NewGlobal()
+	store, err = createStore()
+	if err != nil {
+		t.Fatalf("create mock store error\n%v", err)
+	}
+
+	prod2.APIDocumentation = "170.315 (g)(7),http://carefluence.com/Carefluence-OpenAPI-Documentation.html"
+	expectedErr := "retreiving the API URL from the health IT product API documentation list failed: unexpected format for api doc string"
+	prodList = chplCertifiedProductList{Results: []chplCertifiedProduct{prod1, prod2}}
+
+	err = persistProducts(store, &prodList)
+	// don't expect the function to return with errors
+	Assert(t, err == nil, err)
+	// only expect one item to be stored
+	Assert(t, len(store.(*mockStore).data) == 1, "did not persist one product as expected")
+	Assert(t, store.(*mockStore).data[0].Name == testCHPLProd.Product, "Did not store first product as expected")
+	// expect presence of a log message
+	Assert(t, hook.LastEntry().Message == expectedErr, "expected an error to be logged")
 }
 
 func Assert(t *testing.T, boolStatement bool, errorValue interface{}) {
@@ -304,6 +364,7 @@ func createStore() (endpointmanager.HealthITProductStore, error) {
 		}
 		// want to store a copy
 		newHitp := *hitp
+		newHitp.ID = len(store.data) + 1
 		store.data = append(store.data, &newHitp)
 		return nil
 	}

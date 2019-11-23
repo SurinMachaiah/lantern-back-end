@@ -3,7 +3,6 @@ package chplquerier
 import (
 	"database/sql"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -11,6 +10,9 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/onc-healthit/lantern-back-end/endpointmanager/pkg/endpointmanager"
@@ -55,17 +57,16 @@ func GetCHPLProducts(store endpointmanager.HealthITProductStore) error {
 	fmt.Printf("requesting products\n")
 	prodJSON, err := getProductJSON()
 	if err != nil {
-		return err
+		return errors.Wrap(err, "getting health IT product JSON failed")
 	}
 	prodList, err := convertProductJSONToObj(prodJSON)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "converting health IT product JSON into a 'chplCertifiedProductList' object failed")
 	}
 	fmt.Printf("done requestion products\n")
 
 	err = persistProducts(store, prodList)
-
-	return err
+	return errors.Wrap(err, "persisting the list of retrieved health IT products failed")
 }
 
 func makeCHPLProductURL() (*url.URL, error) {
@@ -75,7 +76,7 @@ func makeCHPLProductURL() (*url.URL, error) {
 
 	chplURL, err := makeCHPLURL(chplAPICertProdListPath, queryArgs)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "creating the URL to query CHPL failed")
 	}
 
 	return chplURL, nil
@@ -84,13 +85,13 @@ func makeCHPLProductURL() (*url.URL, error) {
 func getProductJSON() ([]byte, error) {
 	chplURL, err := makeCHPLProductURL()
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "creating the URL to query CHPL failed")
 	}
 
 	// request ceritified products list
 	resp, err := http.Get(chplURL.String())
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "making the GET request to the CHPL server failed")
 	}
 	defer resp.Body.Close()
 
@@ -102,7 +103,7 @@ func getProductJSON() ([]byte, error) {
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "Reading the CHPL response body failed")
 	}
 
 	return body, nil
@@ -111,13 +112,10 @@ func getProductJSON() ([]byte, error) {
 func convertProductJSONToObj(prodJSON []byte) (*chplCertifiedProductList, error) {
 	var prodList chplCertifiedProductList
 
-	fmt.Printf("unmarshalling json\n")
-
 	err := json.Unmarshal(prodJSON, &prodList)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "unmarshalling the JSON into a chplCertifiedProductList object failed.")
 	}
-	fmt.Printf("finished unmarshalling json\n")
 
 	return &prodList, nil
 }
@@ -136,7 +134,7 @@ func parseHITProd(prod *chplCertifiedProduct) (*endpointmanager.HealthITProduct,
 
 	apiURL, err := getAPIURL(prod.APIDocumentation)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "retreiving the API URL from the health IT product API documentation list failed")
 	}
 	dbProd.APIURL = apiURL
 
@@ -152,8 +150,7 @@ func persistProducts(store endpointmanager.HealthITProductStore, prodList *chplC
 
 		err := persistProduct(store, &prod)
 		if err != nil {
-			// TODO: figure out global logging
-			fmt.Println(err)
+			log.Warn(err)
 			continue
 		}
 	}
@@ -169,26 +166,28 @@ func persistProduct(store endpointmanager.HealthITProductStore, prod *chplCertif
 		return err
 	}
 	existingDbProd, err := store.GetHealthITProductUsingNameAndVersion(prod.Product, prod.Version)
-	// need to add new entry
-	if err == sql.ErrNoRows {
+
+	if err == sql.ErrNoRows { // need to add new entry
 		err = store.AddHealthITProduct(newDbProd)
 		if err != nil {
-			return err
+			return errors.Wrap(err, "adding health IT product to store failed")
 		}
+	} else if err != nil { // error thrown other than no entry exists
+		return errors.Wrap(err, "getting health IT product from store failed")
 	} else if !existingDbProd.Equal(newDbProd) {
 		// changes exist. these may be due to products that have been certified multiple times w/in chpl.
 		// we only care about the latest certification information for a particular version of software.
 
 		needsUpdate, err := prodNeedsUpdate(existingDbProd, newDbProd)
 		if err != nil {
-			return err
+			return errors.Wrap(err, "determining if a health IT product needs updating within the store failed")
 		}
 
 		if needsUpdate {
 			existingDbProd.Update(newDbProd)
 			err = store.UpdateHealthITProduct(existingDbProd)
 			if err != nil {
-				return err
+				return errors.Wrap(err, "updating health IT product to store failed")
 			}
 		}
 	}
@@ -208,12 +207,12 @@ func getAPIURL(apiDocStr string) (string, error) {
 		// check that it's a valid URL
 		_, err := url.ParseRequestURI(apiURL)
 		if err != nil {
-			return "", err
+			return "", errors.Wrap(err, "the URL in the health IT product API documentation string is not valid")
 		}
 		return apiURL, nil
 	}
 
-	return "", errors.New("Unexpected format for api doc string")
+	return "", errors.New("unexpected format for api doc string")
 }
 
 func prodNeedsUpdate(existingDbProd *endpointmanager.HealthITProduct, newDbProd *endpointmanager.HealthITProduct) (bool, error) {
@@ -226,11 +225,11 @@ func prodNeedsUpdate(existingDbProd *endpointmanager.HealthITProduct, newDbProd 
 	// Assumes certification editions are years, which is the case as of 11/20/19.
 	existingCertEdition, err := strconv.Atoi(existingDbProd.CertificationEdition)
 	if err != nil {
-		return false, err
+		return false, errors.Wrap(err, "unable to make certification edition into an integer - expect certification edition to be a year")
 	}
 	newCertEdition, err := strconv.Atoi(newDbProd.CertificationEdition)
 	if err != nil {
-		return false, err
+		return false, errors.Wrap(err, "unable to make certification edition into an integer - expect certification edition to be a year")
 	}
 
 	// if new prod has more recent cert edition, should update.
