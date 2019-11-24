@@ -122,53 +122,19 @@ func (hitp *HealthITProduct) Update(hitp2 *HealthITProduct) error {
 }
 
 func (hitpStore *HealthITProductStoreWithContext) GetHealthITProductWithContext(ctx context.Context, id int) (*HealthITProduct, error) {
-	type result struct {
-		hitp *HealthITProduct
-		err  error
-	}
-
 	if ctx.Err() != nil {
 		return nil, NewErrOpCanceled(ctx.Err())
 	}
 
-	ch := make(chan result)
-	go func() {
-		hitp, err := hitpStore.GetHealthITProduct(id)
-		ch <- result{hitp: hitp, err: err}
-	}()
-
-	select {
-	case <-ctx.Done():
-		<-ch
-		return nil, NewErrOpCompleted(ctx.Err())
-	case res := <-ch:
-		return res.hitp, res.err
-	}
+	return hitpStore.GetHealthITProduct(id)
 }
 
 func (hitpStore *HealthITProductStoreWithContext) GetHealthITProductUsingNameAndVersionWithContext(ctx context.Context, name string, version string) (*HealthITProduct, error) {
-	type result struct {
-		hitp *HealthITProduct
-		err  error
-	}
-
 	if ctx.Err() != nil {
 		return nil, NewErrOpCanceled(ctx.Err())
 	}
 
-	ch := make(chan result)
-	go func() {
-		hitp, err := hitpStore.GetHealthITProductUsingNameAndVersion(name, version)
-		ch <- result{hitp: hitp, err: err}
-	}()
-
-	select {
-	case <-ctx.Done():
-		<-ch
-		return nil, NewErrOpCompleted(ctx.Err())
-	case res := <-ch:
-		return res.hitp, res.err
-	}
+	return hitpStore.GetHealthITProductUsingNameAndVersion(name, version)
 }
 
 func (hitpStore *HealthITProductStoreWithContext) AddHealthITProductWithContext(ctx context.Context, hitp *HealthITProduct) error {
@@ -176,16 +142,7 @@ func (hitpStore *HealthITProductStoreWithContext) AddHealthITProductWithContext(
 		return NewErrOpCanceled(ctx.Err())
 	}
 
-	ch := make(chan error)
-	go func() { ch <- hitpStore.AddHealthITProduct(hitp) }()
-
-	select {
-	case <-ctx.Done():
-		<-ch // wait for add to complete
-		return NewErrOpCompleted(ctx.Err())
-	case err := <-ch:
-		return err
-	}
+	return hitpStore.AddHealthITProduct(hitp)
 }
 
 func (hitpStore *HealthITProductStoreWithContext) UpdateHealthITProductWithContext(ctx context.Context, hitp *HealthITProduct) error {
@@ -193,16 +150,7 @@ func (hitpStore *HealthITProductStoreWithContext) UpdateHealthITProductWithConte
 		return NewErrOpCanceled(ctx.Err())
 	}
 
-	ch := make(chan error)
-	go func() { ch <- hitpStore.UpdateHealthITProduct(hitp) }()
-
-	select {
-	case <-ctx.Done():
-		<-ch
-		return NewErrOpCompleted(ctx.Err())
-	case err := <-ch:
-		return err
-	}
+	return hitpStore.UpdateHealthITProduct(hitp)
 }
 
 func (hitpStore *HealthITProductStoreWithContext) DeleteHealthITProductWithContext(ctx context.Context, hitp *HealthITProduct) error {
@@ -210,14 +158,5 @@ func (hitpStore *HealthITProductStoreWithContext) DeleteHealthITProductWithConte
 		return NewErrOpCanceled(ctx.Err())
 	}
 
-	ch := make(chan error)
-	go func() { ch <- hitpStore.DeleteHealthITProduct(hitp) }()
-
-	select {
-	case <-ctx.Done():
-		<-ch
-		return NewErrOpCompleted(ctx.Err())
-	case err := <-ch:
-		return err
-	}
+	return hitpStore.DeleteHealthITProduct(hitp)
 }

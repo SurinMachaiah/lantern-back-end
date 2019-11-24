@@ -64,7 +64,8 @@ func GetCHPLProducts(ctx context.Context, store endpointmanager.HealthITProductS
 	if err != nil {
 		return errors.Wrap(err, "getting health IT product JSON failed")
 	}
-	prodList, err := convertProductJSONToObj(prodJSON)
+
+	prodList, err := convertProductJSONToObj(ctx, prodJSON)
 	if err != nil {
 		return errors.Wrap(err, "converting health IT product JSON into a 'chplCertifiedProductList' object failed")
 	}
@@ -118,8 +119,13 @@ func getProductJSON(ctx context.Context) ([]byte, error) {
 	return body, nil
 }
 
-func convertProductJSONToObj(prodJSON []byte) (*chplCertifiedProductList, error) {
+func convertProductJSONToObj(ctx context.Context, prodJSON []byte) (*chplCertifiedProductList, error) {
 	var prodList chplCertifiedProductList
+
+	// don't unmarshal the JSON if the context has ended
+	if ctx.Err() != nil {
+		return nil, errors.Wrap(ctx.Err(), "Unable to convert product JSON to objects - context ended")
+	}
 
 	err := json.Unmarshal(prodJSON, &prodList)
 	if err != nil {

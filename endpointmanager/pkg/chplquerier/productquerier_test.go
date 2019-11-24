@@ -71,6 +71,7 @@ func Test_makeCHPLProductURLError(t *testing.T) {
 }
 
 func Test_convertProductJSONToObj(t *testing.T) {
+	ctx := context.Background()
 	prodListJSON := `{
 		"results": [
 		{
@@ -118,7 +119,7 @@ func Test_convertProductJSONToObj(t *testing.T) {
 		Results: []chplCertifiedProduct{expectedProd1, expectedProd2},
 	}
 
-	prodList, err := convertProductJSONToObj([]byte(prodListJSON))
+	prodList, err := convertProductJSONToObj(ctx, []byte(prodListJSON))
 	Assert(t, err == nil, err)
 	Assert(t, prodList.Results != nil, "Expected results field to be filled out for  product list.")
 	Assert(t, len(prodList.Results) == len(expectedProdList.Results), fmt.Sprintf("Number of products is %d. Should be %d.", len(prodList.Results), len(expectedProdList.Results)))
@@ -129,12 +130,13 @@ func Test_convertProductJSONToObj(t *testing.T) {
 }
 
 func Test_convertProductJSONToObjError(t *testing.T) {
+	ctx := context.Background()
 	malformedJSON := `
 		"asdf": [
 		{}]}
 		`
 
-	_, err := convertProductJSONToObj([]byte(malformedJSON))
+	_, err := convertProductJSONToObj(ctx, []byte(malformedJSON))
 	Assert(t, err != nil, "Expected malformed JSON error")
 }
 
