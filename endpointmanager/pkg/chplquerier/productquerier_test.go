@@ -1,6 +1,7 @@
 package chplquerier
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"testing"
@@ -266,12 +267,15 @@ func Test_persistProduct(t *testing.T) {
 	if err != nil {
 		t.Fatalf("create mock store error\n%v", err)
 	}
+	storeWContext := endpointmanager.HealthITProductStoreWithContext{store}
+
+	ctx := context.Background()
 
 	prod := testCHPLProd
 	hitp := testHITP
 
 	// check that new item is stored
-	err = persistProduct(store, &prod)
+	err = persistProduct(ctx, storeWContext, &prod)
 	Assert(t, err == nil, err)
 	Assert(t, len(store.(*mockStore).data) == 1, "did not store data as expected")
 	Assert(t, hitp.Equal(store.(*mockStore).data[0]), "stored data does not equal expected store data")
@@ -279,7 +283,7 @@ func Test_persistProduct(t *testing.T) {
 	// check that newer updated item replaces item
 	prod.Edition = "2015"
 	hitp.CertificationEdition = "2015"
-	err = persistProduct(store, &prod)
+	err = persistProduct(ctx, storeWContext, &prod)
 	Assert(t, err == nil, err)
 	Assert(t, len(store.(*mockStore).data) == 1, "did not store data as expected")
 	Assert(t, hitp.Equal(store.(*mockStore).data[0]), "stored data does not equal expected store data")
@@ -287,21 +291,21 @@ func Test_persistProduct(t *testing.T) {
 	// check that older updated item does not replace item
 	prod.Edition = "2014"
 	hitp.CertificationEdition = "2015" // keeping 2015
-	err = persistProduct(store, &prod)
+	err = persistProduct(ctx, storeWContext, &prod)
 	Assert(t, err == nil, err)
 	Assert(t, len(store.(*mockStore).data) == 1, "did not store data as expected")
 	Assert(t, hitp.Equal(store.(*mockStore).data[0]), "stored data does not equal expected store data")
 
 	// check that malformed product throws error
 	prod.APIDocumentation = "170.315 (g)(7),http://carefluence.com/Carefluence-OpenAPI-Documentation.html"
-	err = persistProduct(store, &prod)
+	err = persistProduct(ctx, storeWContext, &prod)
 	Assert(t, err != nil, "expected error parsing product")
 
 	// check that ambiguous update throws error
 	prod = testCHPLProd
-	prod.Edition = "2015"
+	prod.Edition = "2015" // same date as what is in store
 	prod.CertificationStatus = "Retired"
-	err = persistProduct(store, &prod)
+	err = persistProduct(ctx, storeWContext, &prod)
 	Assert(t, err != nil, "expected error updating product")
 }
 
@@ -310,6 +314,9 @@ func Test_persistProducts(t *testing.T) {
 	if err != nil {
 		t.Fatalf("create mock store error\n%v", err)
 	}
+	storeWContext := endpointmanager.HealthITProductStoreWithContext{store}
+
+	ctx := context.Background()
 
 	// standard persist
 	prod1 := testCHPLProd
@@ -318,12 +325,12 @@ func Test_persistProducts(t *testing.T) {
 
 	prodList := chplCertifiedProductList{Results: []chplCertifiedProduct{prod1, prod2}}
 
-	err = persistProducts(store, &prodList)
+	err = persistProducts(ctx, storeWContext, &prodList)
 	Assert(t, err == nil, err)
 
 	Assert(t, len(store.(*mockStore).data) == 2, "did not persist two products as expected")
 	Assert(t, store.(*mockStore).data[0].Name == testCHPLProd.Product, "Did not store first product as expected")
-	Assert(t, store.(*mockStore).data[1].Name == "another prod", "Did not store first product as expected")
+	Assert(t, store.(*mockStore).data[1].Name == "another prod", "Did not store second product as expected")
 
 	// persist with errors
 	hook := logtest.NewGlobal()
@@ -331,19 +338,27 @@ func Test_persistProducts(t *testing.T) {
 	if err != nil {
 		t.Fatalf("create mock store error\n%v", err)
 	}
+	storeWContext = endpointmanager.HealthITProductStoreWithContext{store}
 
 	prod2.APIDocumentation = "170.315 (g)(7),http://carefluence.com/Carefluence-OpenAPI-Documentation.html"
 	expectedErr := "retreiving the API URL from the health IT product API documentation list failed: unexpected format for api doc string"
 	prodList = chplCertifiedProductList{Results: []chplCertifiedProduct{prod1, prod2}}
 
-	err = persistProducts(store, &prodList)
+	err = persistProducts(ctx, storeWContext, &prodList)
 	// don't expect the function to return with errors
 	Assert(t, err == nil, err)
 	// only expect one item to be stored
 	Assert(t, len(store.(*mockStore).data) == 1, "did not persist one product as expected")
 	Assert(t, store.(*mockStore).data[0].Name == testCHPLProd.Product, "Did not store first product as expected")
 	// expect presence of a log message
-	Assert(t, hook.LastEntry().Message == expectedErr, "expected an error to be logged")
+	found := false
+	for i := range hook.Entries {
+		if hook.Entries[i].Message == expectedErr {
+			found = true
+			break
+		}
+	}
+	Assert(t, found, "expected an error to be logged")
 }
 
 func Assert(t *testing.T, boolStatement bool, errorValue interface{}) {

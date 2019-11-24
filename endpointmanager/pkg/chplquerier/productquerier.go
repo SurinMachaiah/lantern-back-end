@@ -1,6 +1,7 @@
 package chplquerier
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"fmt"
@@ -11,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	lhttp "github.com/onc-healthit/lantern-back-end/endpointmanager/pkg/http"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 
@@ -53,9 +55,12 @@ type chplCertifiedProductList struct {
 	Results []chplCertifiedProduct `json:"results"`
 }
 
-func GetCHPLProducts(store endpointmanager.HealthITProductStore) error {
+func GetCHPLProducts(ctx context.Context, store endpointmanager.HealthITProductStore) error {
+	storeWContext := endpointmanager.HealthITProductStoreWithContext{store}
+
 	fmt.Printf("requesting products\n")
-	prodJSON, err := getProductJSON()
+
+	prodJSON, err := getProductJSON(ctx)
 	if err != nil {
 		return errors.Wrap(err, "getting health IT product JSON failed")
 	}
@@ -65,7 +70,7 @@ func GetCHPLProducts(store endpointmanager.HealthITProductStore) error {
 	}
 	fmt.Printf("done requestion products\n")
 
-	err = persistProducts(store, prodList)
+	err = persistProducts(ctx, storeWContext, prodList)
 	return errors.Wrap(err, "persisting the list of retrieved health IT products failed")
 }
 
@@ -82,14 +87,18 @@ func makeCHPLProductURL() (*url.URL, error) {
 	return chplURL, nil
 }
 
-func getProductJSON() ([]byte, error) {
+func getProductJSON(ctx context.Context) ([]byte, error) {
 	chplURL, err := makeCHPLProductURL()
 	if err != nil {
 		return nil, errors.Wrap(err, "creating the URL to query CHPL failed")
 	}
 
 	// request ceritified products list
-	resp, err := http.Get(chplURL.String())
+	client := lhttp.GetClient()
+	req, err := http.NewRequest("GET", chplURL.String(), nil)
+	req = req.WithContext(ctx)
+
+	resp, err := client.Do(req)
 	if err != nil {
 		return nil, errors.Wrap(err, "making the GET request to the CHPL server failed")
 	}
@@ -141,34 +150,44 @@ func parseHITProd(prod *chplCertifiedProduct) (*endpointmanager.HealthITProduct,
 	return &dbProd, nil
 }
 
-func persistProducts(store endpointmanager.HealthITProductStore, prodList *chplCertifiedProductList) error {
+func persistProducts(ctx context.Context, store endpointmanager.HealthITProductStoreWithContext, prodList *chplCertifiedProductList) error {
 	for i, prod := range prodList.Results {
 
 		if i%100 == 0 {
-			fmt.Printf("Processing product #%d\n", i)
+			log.Infof("Processing product %d/%d", i, len(prodList.Results))
 		}
 
-		err := persistProduct(store, &prod)
-		if err != nil {
-			log.Warn(err)
-			continue
+		ch := make(chan error)
+		go func() { ch <- persistProduct(ctx, store, &prod) }()
+
+		select {
+		case <-ctx.Done():
+			<-ch
+			return errors.Wrapf(ctx.Err(), "persisted %d out of %d products before context ended", i, len(prodList.Results))
+		case err := <-ch:
+			if err != nil {
+				log.Warn(err)
+				continue
+			}
 		}
 	}
 
-	fmt.Printf("Done processing products\n")
+	log.Info("Done processing products")
 	return nil
 }
 
-func persistProduct(store endpointmanager.HealthITProductStore, prod *chplCertifiedProduct) error {
+func persistProduct(ctx context.Context,
+	store endpointmanager.HealthITProductStoreWithContext,
+	prod *chplCertifiedProduct) error {
 
 	newDbProd, err := parseHITProd(prod)
 	if err != nil {
 		return err
 	}
-	existingDbProd, err := store.GetHealthITProductUsingNameAndVersion(prod.Product, prod.Version)
+	existingDbProd, err := store.GetHealthITProductUsingNameAndVersionWithContext(ctx, prod.Product, prod.Version)
 
 	if err == sql.ErrNoRows { // need to add new entry
-		err = store.AddHealthITProduct(newDbProd)
+		err = store.AddHealthITProductWithContext(ctx, newDbProd)
 		if err != nil {
 			return errors.Wrap(err, "adding health IT product to store failed")
 		}
@@ -185,7 +204,7 @@ func persistProduct(store endpointmanager.HealthITProductStore, prod *chplCertif
 
 		if needsUpdate {
 			existingDbProd.Update(newDbProd)
-			err = store.UpdateHealthITProduct(existingDbProd)
+			err = store.UpdateHealthITProductWithContext(ctx, existingDbProd)
 			if err != nil {
 				return errors.Wrap(err, "updating health IT product to store failed")
 			}

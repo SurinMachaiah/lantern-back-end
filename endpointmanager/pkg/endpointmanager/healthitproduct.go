@@ -1,8 +1,11 @@
 package endpointmanager
 
 import (
-	"errors"
+	"context"
+
 	"time"
+
+	"github.com/pkg/errors"
 
 	"github.com/google/go-cmp/cmp"
 )
@@ -40,6 +43,10 @@ type HealthITProductStore interface {
 	DeleteHealthITProduct(*HealthITProduct) error
 
 	Close()
+}
+
+type HealthITProductStoreWithContext struct {
+	HealthITProductStore
 }
 
 // Equal checks each field of the two HealthITProducts except for the database ID, CHPL ID, CreatedAt and UpdatedAt fields to see if they are equal.
@@ -92,39 +99,6 @@ func (hitp *HealthITProduct) Equal(hitp2 *HealthITProduct) bool {
 	return true
 }
 
-// Equalish checks each field of the two HealthITProducts except for the CHPL ID, certification criteria,
-// certification date, certification edition, database ID, CreatedAt and UpdatedAt fields to see if they are equal.
-func (hitp *HealthITProduct) Equalish(hitp2 *HealthITProduct) bool {
-	if hitp == nil && hitp2 == nil {
-		return true
-	} else if hitp == nil {
-		return false
-	} else if hitp2 == nil {
-		return false
-	}
-
-	if hitp.Name != hitp2.Name {
-		return false
-	}
-	if hitp.Version != hitp2.Version {
-		return false
-	}
-	if hitp.Developer != hitp2.Developer {
-		return false
-	}
-	if !hitp.Location.Equal(hitp2.Location) {
-		return false
-	}
-	if hitp.CertificationStatus != hitp2.CertificationStatus {
-		return false
-	}
-	if !hitp.LastModifiedInCHPL.Equal(hitp2.LastModifiedInCHPL) {
-		return false
-	}
-
-	return true
-}
-
 func (hitp *HealthITProduct) Update(hitp2 *HealthITProduct) error {
 	if hitp == nil || hitp2 == nil {
 		return errors.New("HealthITPrdouct.Update: a given health IT product is nil")
@@ -145,4 +119,105 @@ func (hitp *HealthITProduct) Update(hitp2 *HealthITProduct) error {
 	hitp.CHPLID = hitp2.CHPLID
 
 	return nil
+}
+
+func (hitpStore *HealthITProductStoreWithContext) GetHealthITProductWithContext(ctx context.Context, id int) (*HealthITProduct, error) {
+	type result struct {
+		hitp *HealthITProduct
+		err  error
+	}
+
+	if ctx.Err() != nil {
+		return nil, NewErrOpCanceled(ctx.Err())
+	}
+
+	ch := make(chan result)
+	go func() {
+		hitp, err := hitpStore.GetHealthITProduct(id)
+		ch <- result{hitp: hitp, err: err}
+	}()
+
+	select {
+	case <-ctx.Done():
+		<-ch
+		return nil, NewErrOpCompleted(ctx.Err())
+	case res := <-ch:
+		return res.hitp, res.err
+	}
+}
+
+func (hitpStore *HealthITProductStoreWithContext) GetHealthITProductUsingNameAndVersionWithContext(ctx context.Context, name string, version string) (*HealthITProduct, error) {
+	type result struct {
+		hitp *HealthITProduct
+		err  error
+	}
+
+	if ctx.Err() != nil {
+		return nil, NewErrOpCanceled(ctx.Err())
+	}
+
+	ch := make(chan result)
+	go func() {
+		hitp, err := hitpStore.GetHealthITProductUsingNameAndVersion(name, version)
+		ch <- result{hitp: hitp, err: err}
+	}()
+
+	select {
+	case <-ctx.Done():
+		<-ch
+		return nil, NewErrOpCompleted(ctx.Err())
+	case res := <-ch:
+		return res.hitp, res.err
+	}
+}
+
+func (hitpStore *HealthITProductStoreWithContext) AddHealthITProductWithContext(ctx context.Context, hitp *HealthITProduct) error {
+	if ctx.Err() != nil {
+		return NewErrOpCanceled(ctx.Err())
+	}
+
+	ch := make(chan error)
+	go func() { ch <- hitpStore.AddHealthITProduct(hitp) }()
+
+	select {
+	case <-ctx.Done():
+		<-ch // wait for add to complete
+		return NewErrOpCompleted(ctx.Err())
+	case err := <-ch:
+		return err
+	}
+}
+
+func (hitpStore *HealthITProductStoreWithContext) UpdateHealthITProductWithContext(ctx context.Context, hitp *HealthITProduct) error {
+	if ctx.Err() != nil {
+		return NewErrOpCanceled(ctx.Err())
+	}
+
+	ch := make(chan error)
+	go func() { ch <- hitpStore.UpdateHealthITProduct(hitp) }()
+
+	select {
+	case <-ctx.Done():
+		<-ch
+		return NewErrOpCompleted(ctx.Err())
+	case err := <-ch:
+		return err
+	}
+}
+
+func (hitpStore *HealthITProductStoreWithContext) DeleteHealthITProductWithContext(ctx context.Context, hitp *HealthITProduct) error {
+	if ctx.Err() != nil {
+		return NewErrOpCanceled(ctx.Err())
+	}
+
+	ch := make(chan error)
+	go func() { ch <- hitpStore.DeleteHealthITProduct(hitp) }()
+
+	select {
+	case <-ctx.Done():
+		<-ch
+		return NewErrOpCompleted(ctx.Err())
+	case err := <-ch:
+		return err
+	}
 }
