@@ -54,6 +54,8 @@ type chplCertifiedProductList struct {
 	Results []chplCertifiedProduct `json:"results"`
 }
 
+// GetCHPLProducts queries CHPL for its HealthIT products using 'cli' and stores the products in 'store'
+// within the given context 'ctx'.
 func GetCHPLProducts(ctx context.Context, store endpointmanager.HealthITProductStore, cli *http.Client) error {
 	storeWContext := endpointmanager.HealthITProductStoreWithContext{store}
 
@@ -78,19 +80,7 @@ func GetCHPLProducts(ctx context.Context, store endpointmanager.HealthITProductS
 	return errors.Wrap(err, "persisting the list of retrieved health IT products failed")
 }
 
-func makeCHPLProductURL() (*url.URL, error) {
-	queryArgs := make(map[string]string)
-	fieldStr := strings.Join(fields[:], ",")
-	queryArgs["fields"] = fieldStr
-
-	chplURL, err := makeCHPLURL(chplAPICertProdListPath, queryArgs)
-	if err != nil {
-		return nil, errors.Wrap(err, "creating the URL to query CHPL failed")
-	}
-
-	return chplURL, nil
-}
-
+// makes the request to CHPL and returns the byte string
 func getProductJSON(ctx context.Context, client *http.Client) ([]byte, error) {
 	chplURL, err := makeCHPLProductURL()
 	if err != nil {
@@ -119,6 +109,21 @@ func getProductJSON(ctx context.Context, client *http.Client) ([]byte, error) {
 	return body, nil
 }
 
+// creates the URL used to query CHPL including the data fields
+func makeCHPLProductURL() (*url.URL, error) {
+	queryArgs := make(map[string]string)
+	fieldStr := strings.Join(fields[:], ",")
+	queryArgs["fields"] = fieldStr
+
+	chplURL, err := makeCHPLURL(chplAPICertProdListPath, queryArgs)
+	if err != nil {
+		return nil, errors.Wrap(err, "creating the URL to query CHPL failed")
+	}
+
+	return chplURL, nil
+}
+
+// takes the json byte string and converts it into the associated JSON model
 func convertProductJSONToObj(ctx context.Context, prodJSON []byte) (*chplCertifiedProductList, error) {
 	var prodList chplCertifiedProductList
 
@@ -135,6 +140,7 @@ func convertProductJSONToObj(ctx context.Context, prodJSON []byte) (*chplCertifi
 	return &prodList, nil
 }
 
+// takes the JSON model and converts it into an endpointmanager.HealthITProduct
 func parseHITProd(prod *chplCertifiedProduct) (*endpointmanager.HealthITProduct, error) {
 	dbProd := endpointmanager.HealthITProduct{
 		Name:                  prod.Product,
@@ -156,6 +162,32 @@ func parseHITProd(prod *chplCertifiedProduct) (*endpointmanager.HealthITProduct,
 	return &dbProd, nil
 }
 
+// parses 'apiDocStr' to extract the associated URL. Returns only the first URL. There may be many URLs but observationally,
+// all listed URLs are the same.
+// assumes that criteria/url chunks are delimited by '☺' and that criteria and url are separated by '☹'.
+func getAPIURL(apiDocStr string) (string, error) {
+	if len(apiDocStr) == 0 {
+		return "", nil
+	}
+
+	apiDocStrs := strings.Split(apiDocStr, delimiter1)
+	apiCritAndURL := strings.Split(apiDocStrs[0], delimiter2)
+	if len(apiCritAndURL) == 2 {
+		apiURL := apiCritAndURL[1]
+		// check that it's a valid URL
+		_, err := url.ParseRequestURI(apiURL)
+		if err != nil {
+			return "", errors.Wrap(err, "the URL in the health IT product API documentation string is not valid")
+		}
+		return apiURL, nil
+	}
+
+	return "", errors.New("unexpected format for api doc string")
+}
+
+// persists the products parsed from CHPL. Of note, CHPL includes many entries for a single product. The entry
+// associated with the most recent certifition edition, most recent certification date, or most criteria is the
+// one that is stored.
 func persistProducts(ctx context.Context, store endpointmanager.HealthITProductStoreWithContext, prodList *chplCertifiedProductList) error {
 	for i, prod := range prodList.Results {
 
@@ -182,6 +214,9 @@ func persistProducts(ctx context.Context, store endpointmanager.HealthITProductS
 	return nil
 }
 
+// adds a product to the store if that product's name/version don't exist already. If the name/version do
+// exist, determine if it makes sense to update the product (certified to more recent edition, certified at a
+// later date, has more certification criteria), or not.
 func persistProduct(ctx context.Context,
 	store endpointmanager.HealthITProductStoreWithContext,
 	prod *chplCertifiedProduct) error {
@@ -219,27 +254,17 @@ func persistProduct(ctx context.Context,
 	return nil
 }
 
-// assumes that criteria/url chunks are delimited by '☺' and that criteria and url are separated by '☹'.
-func getAPIURL(apiDocStr string) (string, error) {
-	if len(apiDocStr) == 0 {
-		return "", nil
-	}
-
-	apiDocStrs := strings.Split(apiDocStr, delimiter1)
-	apiCritAndURL := strings.Split(apiDocStrs[0], delimiter2)
-	if len(apiCritAndURL) == 2 {
-		apiURL := apiCritAndURL[1]
-		// check that it's a valid URL
-		_, err := url.ParseRequestURI(apiURL)
-		if err != nil {
-			return "", errors.Wrap(err, "the URL in the health IT product API documentation string is not valid")
-		}
-		return apiURL, nil
-	}
-
-	return "", errors.New("unexpected format for api doc string")
-}
-
+// determines if a product needs to be udpated.
+//
+// if the two products are equal, do not update.
+// else if the new product has a more recent certification edition than the exisitng product, update.
+// else if the new product has a more recent certification date than the exisitng product, update.
+// else if the new product has more certification criteria than the existing product, update.
+//
+// throws errors if
+// - the certification edition is not a year
+// - the certification criteria list is the same length but not equal
+// - the two products are not equal but their differences don't fall into the categories noted above.
 func prodNeedsUpdate(existingDbProd *endpointmanager.HealthITProduct, newDbProd *endpointmanager.HealthITProduct) (bool, error) {
 	// check if the two are equal.
 	if existingDbProd.Equal(newDbProd) {

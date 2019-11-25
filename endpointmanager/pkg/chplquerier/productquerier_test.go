@@ -14,7 +14,7 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/onc-healthit/lantern-back-end/endpointmanager/internal/httpclienttest"
+	th "github.com/onc-healthit/lantern-back-end/endpointmanager/internal/testhelper"
 	"github.com/onc-healthit/lantern-back-end/endpointmanager/pkg/endpointmanager"
 	"github.com/onc-healthit/lantern-back-end/endpointmanager/pkg/endpointmanager/mock"
 
@@ -56,6 +56,9 @@ var testHITP endpointmanager.HealthITProduct = endpointmanager.HealthITProduct{
 }
 
 func Test_makeCHPLProductURLBasic(t *testing.T) {
+
+	// basic test
+
 	apiKey := viper.GetString("chplapikey")
 	viper.Set("chplapikey", "tmp_api_key")
 	defer viper.Set("chplapikey", apiKey)
@@ -63,26 +66,32 @@ func Test_makeCHPLProductURLBasic(t *testing.T) {
 	expected := "https://chpl.healthit.gov/rest/collections/certified_products?api_key=tmp_api_key&fields=id%2Cedition%2Cdeveloper%2Cproduct%2Cversion%2CchplProductNumber%2CcertificationStatus%2CcriteriaMet%2CapiDocumentation%2CcertificationDate%2CpracticeType"
 
 	actualURL, err := makeCHPLProductURL()
-	Assert(t, err == nil, err)
+	th.Assert(t, err == nil, err)
 
 	actual := actualURL.String()
-	Assert(t, expected == actual, fmt.Sprintf("Expected %s to equal %s.", actual, expected))
-}
+	th.Assert(t, expected == actual, fmt.Sprintf("Expected %s to equal %s.", actual, expected))
 
-func Test_makeCHPLProductURLError(t *testing.T) {
+	// test invalid domain and error handling
+
 	chplDomainOrig := chplDomain
 	chplDomain = "http://%41:8080/" // invalid domain
 	defer func() { chplDomain = chplDomainOrig }()
 
-	_, err := makeCHPLProductURL()
-	Assert(t, err != nil, "Expected error due to invalid domain name")
+	_, err = makeCHPLProductURL()
+	switch errors.Cause(err).(type) {
+	case *url.Error:
+		// ok
+	default:
+		t.Fatal("Expected context canceled error")
+	}
 }
 
 func Test_convertProductJSONToObj(t *testing.T) {
 	var ctx context.Context
 	var err error
 
-	// test standard case
+	// basic test
+
 	prodListJSON := `{
 		"results": [
 		{
@@ -132,21 +141,23 @@ func Test_convertProductJSONToObj(t *testing.T) {
 
 	ctx = context.Background()
 	prodList, err := convertProductJSONToObj(ctx, []byte(prodListJSON))
-	Assert(t, err == nil, err)
-	Assert(t, prodList.Results != nil, "Expected results field to be filled out for  product list.")
-	Assert(t, len(prodList.Results) == len(expectedProdList.Results), fmt.Sprintf("Number of products is %d. Should be %d.", len(prodList.Results), len(expectedProdList.Results)))
+	th.Assert(t, err == nil, err)
+	th.Assert(t, prodList.Results != nil, "Expected results field to be filled out for  product list.")
+	th.Assert(t, len(prodList.Results) == len(expectedProdList.Results), fmt.Sprintf("Number of products is %d. Should be %d.", len(prodList.Results), len(expectedProdList.Results)))
 
 	for i, prod := range prodList.Results {
-		Assert(t, prod == expectedProdList.Results[i], "Expected parsed products to equal expected products.")
+		th.Assert(t, prod == expectedProdList.Results[i], "Expected parsed products to equal expected products.")
 	}
 
-	// test with done context
+	// test with canceled context
+
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 	_, err = convertProductJSONToObj(ctx, []byte(prodListJSON))
-	Assert(t, errors.Cause(err) == context.Canceled, "Expected malformed JSON error")
+	th.Assert(t, errors.Cause(err) == context.Canceled, "Expected canceled context error")
 
 	// test with malformed JSON
+
 	ctx = context.Background()
 	malformedJSON := `
 		"asdf": [
@@ -162,45 +173,54 @@ func Test_convertProductJSONToObj(t *testing.T) {
 	}
 }
 
-func Test_convertProductJSONToObjError(t *testing.T) {
-}
-
 func Test_parseHITProd(t *testing.T) {
 	prod := testCHPLProd
 	expectedHITProd := testHITP
 
-	hitProd, err := parseHITProd(&prod)
-	Assert(t, err == nil, err)
-	Assert(t, hitProd.Equal(&expectedHITProd), "CHPL Product did not parse into HealthITProduct as expected.")
+	// basic test
 
-	// provide bad api doc string to cause error
+	hitProd, err := parseHITProd(&prod)
+	th.Assert(t, err == nil, err)
+	th.Assert(t, hitProd.Equal(&expectedHITProd), "CHPL Product did not parse into HealthITProduct as expected.")
+
+	// test bad url in api doc string
+
 	prod.APIDocumentation = "170.315 (g)(7)☹.com/Carefluence-OpenAPI-Documentation.html☺170.315 (g)(8)☹http://carefluence.com/Carefluence-OpenAPI-Documentation.html☺170.315 (g)(9)☹http://carefluence.com/Carefluence-OpenAPI-Documentation.html"
 	_, err = parseHITProd(&prod)
-	Assert(t, err != nil, "Expected api doc parsing error")
+	switch errors.Cause(err).(type) {
+	case *url.Error:
+		// expect url.Error because bad URL provided and we check that using the url package.
+	default:
+		t.Fatal("Expected JSON syntax error")
+	}
 }
 
 func Test_getAPIURL(t *testing.T) {
+
+	// basic test
+
 	apiDocString := "170.315 (g)(7)☹http://carefluence.com/Carefluence-OpenAPI-Documentation.html☺170.315 (g)(8)☹http://carefluence.com/Carefluence-OpenAPI-Documentation.html☺170.315 (g)(9)☹http://carefluence.com/Carefluence-OpenAPI-Documentation.html"
 	expectedURL := "http://carefluence.com/Carefluence-OpenAPI-Documentation.html"
 
 	actualURL, err := getAPIURL(apiDocString)
-	Assert(t, err == nil, err)
-	Assert(t, expectedURL == actualURL, fmt.Sprintf("Expected '%s'. Got '%s'.", expectedURL, actualURL))
+	th.Assert(t, err == nil, err)
+	th.Assert(t, expectedURL == actualURL, fmt.Sprintf("Expected '%s'. Got '%s'.", expectedURL, actualURL))
 
 	// provide bad string - unexpected delimeter
+
 	apiDocString = "170.315 (g)(7),http://carefluence.com/Carefluence-OpenAPI-Documentation.html"
 
 	actualURL, err = getAPIURL(apiDocString)
-	Assert(t, err != nil, "Expected error due to malformed api doc string")
+	th.Assert(t, err != nil, "Expected error due to malformed api doc string")
 
 	// provide empty string
+
 	apiDocString = ""
 	expectedURL = ""
 
 	actualURL, err = getAPIURL(apiDocString)
-	Assert(t, err == nil, err)
-	Assert(t, expectedURL == actualURL, fmt.Sprintf("Expected an empty string"))
-
+	th.Assert(t, err == nil, err)
+	th.Assert(t, expectedURL == actualURL, fmt.Sprintf("Expected an empty string"))
 }
 
 func Test_prodNeedsUpdate(t *testing.T) {
@@ -261,7 +281,7 @@ func Test_prodNeedsUpdate(t *testing.T) {
 
 	for _, expRes := range expectedResults {
 		needsUpdate, err := prodNeedsUpdate(&base, &(expRes.hitProd))
-		Assert(t, needsUpdate == expRes.needsUpdate, fmt.Sprintf("For 'prodNeedsUpdate' using %s, expected %t and got %t.", expRes.name, expRes.needsUpdate, needsUpdate))
+		th.Assert(t, needsUpdate == expRes.needsUpdate, fmt.Sprintf("For 'prodNeedsUpdate' using %s, expected %t and got %t.", expRes.name, expRes.needsUpdate, needsUpdate))
 		if err != nil && expRes.err == nil {
 			t.Fatalf("For 'prodNeedsUpdate' using %s, did not expect error but got error\n%v", expRes.name, err)
 		}
@@ -283,10 +303,10 @@ func Test_prodNeedsUpdate(t *testing.T) {
 	expectedErrorStr := `strconv.Atoi: parsing "asdf": invalid syntax`
 
 	needsUpdate, err := prodNeedsUpdate(&baseBadEdition, &base)
-	Assert(t, needsUpdate == expectedNeedsUpdate, fmt.Sprintf("For 'prodNeedsUpdate' using %s, expected %t and got %t.", name, expectedNeedsUpdate, needsUpdate))
-	Assert(t, err != nil, "Expected an error")
+	th.Assert(t, needsUpdate == expectedNeedsUpdate, fmt.Sprintf("For 'prodNeedsUpdate' using %s, expected %t and got %t.", name, expectedNeedsUpdate, needsUpdate))
+	th.Assert(t, err != nil, "Expected an error")
 	origErr := errors.Cause(err)
-	Assert(t, origErr.Error() == expectedErrorStr, fmt.Sprintf("For 'prodNeedsUpdate' using %s, expected error\n%v\nAnd got error\n%v", name, expectedErrorStr, origErr))
+	th.Assert(t, origErr.Error() == expectedErrorStr, fmt.Sprintf("For 'prodNeedsUpdate' using %s, expected error\n%v\nAnd got error\n%v", name, expectedErrorStr, origErr))
 }
 
 func Test_persistProduct(t *testing.T) {
@@ -306,45 +326,45 @@ func Test_persistProduct(t *testing.T) {
 	ctx, cancel = context.WithCancel(context.Background())
 	cancel()
 	err = persistProduct(ctx, storeWContext, &prod)
-	Assert(t, len(store.(*mockStore).data) == 0, "should not have stored data")
-	Assert(t, errors.Cause(err) == context.Canceled, "should have errored out with root cause that the context was canceled")
+	th.Assert(t, len(store.(*mockStore).data) == 0, "should not have stored data")
+	th.Assert(t, errors.Cause(err) == context.Canceled, "should have errored out with root cause that the context was canceled")
 
 	// reset context
 	ctx = context.Background()
 
 	// check that new item is stored
 	err = persistProduct(ctx, storeWContext, &prod)
-	Assert(t, err == nil, err)
-	Assert(t, len(store.(*mockStore).data) == 1, "did not store data as expected")
-	Assert(t, hitp.Equal(store.(*mockStore).data[0]), "stored data does not equal expected store data")
+	th.Assert(t, err == nil, err)
+	th.Assert(t, len(store.(*mockStore).data) == 1, "did not store data as expected")
+	th.Assert(t, hitp.Equal(store.(*mockStore).data[0]), "stored data does not equal expected store data")
 
 	// check that newer updated item replaces item
 	prod.Edition = "2015"
 	hitp.CertificationEdition = "2015"
 	err = persistProduct(ctx, storeWContext, &prod)
-	Assert(t, err == nil, err)
-	Assert(t, len(store.(*mockStore).data) == 1, "did not store data as expected")
-	Assert(t, hitp.Equal(store.(*mockStore).data[0]), "stored data does not equal expected store data")
+	th.Assert(t, err == nil, err)
+	th.Assert(t, len(store.(*mockStore).data) == 1, "did not store data as expected")
+	th.Assert(t, hitp.Equal(store.(*mockStore).data[0]), "stored data does not equal expected store data")
 
 	// check that older updated item does not replace item
 	prod.Edition = "2014"
 	hitp.CertificationEdition = "2015" // keeping 2015
 	err = persistProduct(ctx, storeWContext, &prod)
-	Assert(t, err == nil, err)
-	Assert(t, len(store.(*mockStore).data) == 1, "did not store data as expected")
-	Assert(t, hitp.Equal(store.(*mockStore).data[0]), "stored data does not equal expected store data")
+	th.Assert(t, err == nil, err)
+	th.Assert(t, len(store.(*mockStore).data) == 1, "did not store data as expected")
+	th.Assert(t, hitp.Equal(store.(*mockStore).data[0]), "stored data does not equal expected store data")
 
 	// check that malformed product throws error
 	prod.APIDocumentation = "170.315 (g)(7),http://carefluence.com/Carefluence-OpenAPI-Documentation.html"
 	err = persistProduct(ctx, storeWContext, &prod)
-	Assert(t, err != nil, "expected error parsing product")
+	th.Assert(t, err != nil, "expected error parsing product")
 
 	// check that ambiguous update throws error
 	prod = testCHPLProd
 	prod.Edition = "2015" // same date as what is in store
 	prod.CertificationStatus = "Retired"
 	err = persistProduct(ctx, storeWContext, &prod)
-	Assert(t, err != nil, "expected error updating product")
+	th.Assert(t, err != nil, "expected error updating product")
 }
 
 func Test_persistProducts(t *testing.T) {
@@ -365,11 +385,11 @@ func Test_persistProducts(t *testing.T) {
 	prodList := chplCertifiedProductList{Results: []chplCertifiedProduct{prod1, prod2}}
 
 	err = persistProducts(ctx, storeWContext, &prodList)
-	Assert(t, err == nil, err)
+	th.Assert(t, err == nil, err)
 
-	Assert(t, len(store.(*mockStore).data) == 2, "did not persist two products as expected")
-	Assert(t, store.(*mockStore).data[0].Name == testCHPLProd.Product, "Did not store first product as expected")
-	Assert(t, store.(*mockStore).data[1].Name == "another prod", "Did not store second product as expected")
+	th.Assert(t, len(store.(*mockStore).data) == 2, "did not persist two products as expected")
+	th.Assert(t, store.(*mockStore).data[0].Name == testCHPLProd.Product, "Did not store first product as expected")
+	th.Assert(t, store.(*mockStore).data[1].Name == "another prod", "Did not store second product as expected")
 
 	// persist with errors
 
@@ -386,10 +406,10 @@ func Test_persistProducts(t *testing.T) {
 
 	err = persistProducts(ctx, storeWContext, &prodList)
 	// don't expect the function to return with errors
-	Assert(t, err == nil, err)
+	th.Assert(t, err == nil, err)
 	// only expect one item to be stored
-	Assert(t, len(store.(*mockStore).data) == 1, "did not persist one product as expected")
-	Assert(t, store.(*mockStore).data[0].Name == testCHPLProd.Product, "Did not store first product as expected")
+	th.Assert(t, len(store.(*mockStore).data) == 1, "did not persist one product as expected")
+	th.Assert(t, store.(*mockStore).data[0].Name == testCHPLProd.Product, "Did not store first product as expected")
 	// expect presence of a log message
 	found := false
 	for i := range hook.Entries {
@@ -398,7 +418,7 @@ func Test_persistProducts(t *testing.T) {
 			break
 		}
 	}
-	Assert(t, found, "expected an error to be logged")
+	th.Assert(t, found, "expected an error to be logged")
 
 	// persist when context has ended
 	ctx, cancel := context.WithCancel(context.Background())
@@ -414,12 +434,12 @@ func Test_persistProducts(t *testing.T) {
 	prod2.Product = "another prod"
 
 	err = persistProducts(ctx, storeWContext, &prodList)
-	Assert(t, errors.Cause(err) == context.Canceled, "expected persistProducts to error out due to context ending")
+	th.Assert(t, errors.Cause(err) == context.Canceled, "expected persistProducts to error out due to context ending")
 }
 
 func Test_getProductJSON(t *testing.T) {
 	var err error
-	var tc *httpclienttest.TestClient
+	var tc *th.TestClient
 	var ctx context.Context
 
 	// basic test
@@ -428,25 +448,25 @@ func Test_getProductJSON(t *testing.T) {
 	expectedProdsReceived := 201
 
 	tc, err = basicTestClient()
-	Assert(t, err == nil, err)
+	th.Assert(t, err == nil, err)
 	defer tc.Close()
 
 	ctx = context.Background()
 
 	prodJSON, err := getProductJSON(ctx, &(tc.Client))
-	Assert(t, err == nil, err)
+	th.Assert(t, err == nil, err)
 
 	// convert received JSON so we can count the number of entries received
 	prods, err := convertProductJSONToObj(ctx, prodJSON)
-	Assert(t, err == nil, err)
+	th.Assert(t, err == nil, err)
 	actualProdsReceived := len(prods.Results)
-	Assert(t, actualProdsReceived == expectedProdsReceived, fmt.Sprintf("Expected to receive %d products Actually received %d products.", expectedProdsReceived, actualProdsReceived))
+	th.Assert(t, actualProdsReceived == expectedProdsReceived, fmt.Sprintf("Expected to receive %d products Actually received %d products.", expectedProdsReceived, actualProdsReceived))
 
 	// test context ended.
 	// also checks what happens when an http request fails
 
 	tc, err = basicTestClient()
-	Assert(t, err == nil, err)
+	th.Assert(t, err == nil, err)
 	defer tc.Close()
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -455,7 +475,7 @@ func Test_getProductJSON(t *testing.T) {
 	_, err = getProductJSON(ctx, &(tc.Client))
 	switch reqErr := errors.Cause(err).(type) {
 	case *url.Error:
-		Assert(t, reqErr.Err == context.Canceled, "Expected error stating that context was canceled")
+		th.Assert(t, reqErr.Err == context.Canceled, "Expected error stating that context was canceled")
 	default:
 		t.Fatal("Expected context canceled error")
 	}
@@ -463,7 +483,7 @@ func Test_getProductJSON(t *testing.T) {
 
 func Test_GetCHPLProducts(t *testing.T) {
 	var err error
-	var tc *httpclienttest.TestClient
+	var tc *th.TestClient
 	var ctx context.Context
 	var store endpointmanager.HealthITProductStore
 
@@ -473,7 +493,7 @@ func Test_GetCHPLProducts(t *testing.T) {
 	expectedProdsStored := 168
 
 	tc, err = basicTestClient()
-	Assert(t, err == nil, err)
+	th.Assert(t, err == nil, err)
 	defer tc.Close()
 
 	ctx = context.Background()
@@ -484,15 +504,15 @@ func Test_GetCHPLProducts(t *testing.T) {
 	}
 
 	err = GetCHPLProducts(ctx, store, &(tc.Client))
-	Assert(t, err == nil, err)
+	th.Assert(t, err == nil, err)
 	actualProdsStored := len(store.(*mockStore).data)
-	Assert(t, actualProdsStored == expectedProdsStored, fmt.Sprintf("Expected %d products stored. Actually had %d products stored.", expectedProdsStored, actualProdsStored))
+	th.Assert(t, actualProdsStored == expectedProdsStored, fmt.Sprintf("Expected %d products stored. Actually had %d products stored.", expectedProdsStored, actualProdsStored))
 
 	// test context ended
 	// also checks what happens when an http request fails
 
 	tc, err = basicTestClient()
-	Assert(t, err == nil, err)
+	th.Assert(t, err == nil, err)
 	defer tc.Close()
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -506,20 +526,14 @@ func Test_GetCHPLProducts(t *testing.T) {
 	err = GetCHPLProducts(ctx, store, &(tc.Client))
 	switch reqErr := errors.Cause(err).(type) {
 	case *url.Error:
-		Assert(t, reqErr.Err == context.Canceled, "Expected error stating that context was canceled")
+		th.Assert(t, reqErr.Err == context.Canceled, "Expected error stating that context was canceled")
 	default:
 		t.Fatal("Expected context canceled error")
 	}
 
 }
 
-func Assert(t *testing.T, boolStatement bool, errorValue interface{}) {
-	if !boolStatement {
-		t.Fatalf("%s: %v", t.Name(), errorValue)
-	}
-}
-
-func basicTestClient() (*httpclienttest.TestClient, error) {
+func basicTestClient() (*th.TestClient, error) {
 
 	path := filepath.Join("testdata", "chpl_certified_products.json")
 	okResponse, err := ioutil.ReadFile(path)
@@ -531,7 +545,7 @@ func basicTestClient() (*httpclienttest.TestClient, error) {
 		w.Write([]byte(okResponse))
 	})
 
-	tc := httpclienttest.NewTestClient(h)
+	tc := th.NewTestClient(h)
 
 	return tc, nil
 }

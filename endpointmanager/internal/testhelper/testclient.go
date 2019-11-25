@@ -1,4 +1,4 @@
-package httpclienttest
+package testhelper
 
 import (
 	"context"
@@ -8,11 +8,14 @@ import (
 	"net/http/httptest"
 )
 
+// TestClient is test wrapper around an http client, allowing http responses to be mocked.
 type TestClient struct {
 	teardown func()
 	http.Client
 }
 
+// NewTestClient creates a new TestClient using an httptest TLS Server. Any http requests using
+// this client will be handled by 'handler'.
 func NewTestClient(handler http.Handler) *TestClient {
 	httpcli, teardown := testingHTTPClient(handler)
 
@@ -24,6 +27,8 @@ func NewTestClient(handler http.Handler) *TestClient {
 	return &tc
 }
 
+// Close closes resources associated with the test client and should be called after every
+// instantiation of the client.
 func (tc *TestClient) Close() {
 	tc.teardown()
 }
