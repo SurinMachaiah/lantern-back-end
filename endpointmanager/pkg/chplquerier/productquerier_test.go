@@ -3,6 +3,7 @@ package chplquerier
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"testing"
 	"time"
@@ -71,7 +72,10 @@ func Test_makeCHPLProductURLError(t *testing.T) {
 }
 
 func Test_convertProductJSONToObj(t *testing.T) {
-	ctx := context.Background()
+	var ctx context.Context
+	var err error
+
+	// test standard case
 	prodListJSON := `{
 		"results": [
 		{
@@ -119,6 +123,7 @@ func Test_convertProductJSONToObj(t *testing.T) {
 		Results: []chplCertifiedProduct{expectedProd1, expectedProd2},
 	}
 
+	ctx = context.Background()
 	prodList, err := convertProductJSONToObj(ctx, []byte(prodListJSON))
 	Assert(t, err == nil, err)
 	Assert(t, prodList.Results != nil, "Expected results field to be filled out for  product list.")
@@ -127,17 +132,30 @@ func Test_convertProductJSONToObj(t *testing.T) {
 	for i, prod := range prodList.Results {
 		Assert(t, prod == expectedProdList.Results[i], "Expected parsed products to equal expected products.")
 	}
-}
 
-func Test_convertProductJSONToObjError(t *testing.T) {
-	ctx := context.Background()
+	// test with done context
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	_, err = convertProductJSONToObj(ctx, []byte(prodListJSON))
+	Assert(t, errors.Cause(err) == context.Canceled, "Expected malformed JSON error")
+
+	// test with malformed JSON
+	ctx = context.Background()
 	malformedJSON := `
 		"asdf": [
 		{}]}
 		`
 
-	_, err := convertProductJSONToObj(ctx, []byte(malformedJSON))
-	Assert(t, err != nil, "Expected malformed JSON error")
+	_, err = convertProductJSONToObj(ctx, []byte(malformedJSON))
+	switch errors.Cause(err).(type) {
+	case *json.SyntaxError:
+		// ok
+	default:
+		t.Fatal("Expected JSON syntax error")
+	}
+}
+
+func Test_convertProductJSONToObjError(t *testing.T) {
 }
 
 func Test_parseHITProd(t *testing.T) {
@@ -271,10 +289,21 @@ func Test_persistProduct(t *testing.T) {
 	}
 	storeWContext := endpointmanager.HealthITProductStoreWithContext{store}
 
-	ctx := context.Background()
+	var ctx context.Context
+	var cancel context.CancelFunc
 
 	prod := testCHPLProd
 	hitp := testHITP
+
+	// check that ended context when no element in store fails as expected
+	ctx, cancel = context.WithCancel(context.Background())
+	cancel()
+	err = persistProduct(ctx, storeWContext, &prod)
+	Assert(t, len(store.(*mockStore).data) == 0, "should not have stored data")
+	Assert(t, errors.Cause(err) == context.Canceled, "should have errored out with root cause that the context was canceled")
+
+	// reset context
+	ctx = context.Background()
 
 	// check that new item is stored
 	err = persistProduct(ctx, storeWContext, &prod)
@@ -321,6 +350,7 @@ func Test_persistProducts(t *testing.T) {
 	ctx := context.Background()
 
 	// standard persist
+
 	prod1 := testCHPLProd
 	prod2 := testCHPLProd
 	prod2.Product = "another prod"
@@ -335,6 +365,7 @@ func Test_persistProducts(t *testing.T) {
 	Assert(t, store.(*mockStore).data[1].Name == "another prod", "Did not store second product as expected")
 
 	// persist with errors
+
 	hook := logtest.NewGlobal()
 	store, err = createStore()
 	if err != nil {
@@ -361,6 +392,22 @@ func Test_persistProducts(t *testing.T) {
 		}
 	}
 	Assert(t, found, "expected an error to be logged")
+
+	// persist when context has ended
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	store, err = createStore()
+	if err != nil {
+		t.Fatalf("create mock store error\n%v", err)
+	}
+	storeWContext = endpointmanager.HealthITProductStoreWithContext{store}
+
+	prod2 = testCHPLProd
+	prod2.Product = "another prod"
+
+	err = persistProducts(ctx, storeWContext, &prodList)
+	Assert(t, errors.Cause(err) == context.Canceled, "expected persistProducts to error out due to context ending")
 }
 
 func Assert(t *testing.T, boolStatement bool, errorValue interface{}) {
