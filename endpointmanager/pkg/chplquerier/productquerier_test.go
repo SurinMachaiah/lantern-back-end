@@ -5,6 +5,9 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"net/http"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -12,11 +15,14 @@ import (
 
 	"github.com/onc-healthit/lantern-back-end/endpointmanager/pkg/endpointmanager"
 	"github.com/onc-healthit/lantern-back-end/endpointmanager/pkg/endpointmanager/mock"
+	"github.com/onc-healthit/lantern-back-end/endpointmanager/pkg/httpclient/httpclienttest"
 
 	logtest "github.com/sirupsen/logrus/hooks/test"
 
 	"github.com/spf13/viper"
 )
+
+const testdata = "github.com/onc-healthit/lantern-back-end/endpointmanager/test/testdata/"
 
 type mockStore struct {
 	data []*endpointmanager.HealthITProduct
@@ -408,6 +414,29 @@ func Test_persistProducts(t *testing.T) {
 
 	err = persistProducts(ctx, storeWContext, &prodList)
 	Assert(t, errors.Cause(err) == context.Canceled, "expected persistProducts to error out due to context ending")
+}
+
+func Test_getProductJSON(t *testing.T) {
+	path := filepath.Join("testdata", "chpl_certified_products.json")
+	okResponse, err := ioutil.ReadFile(path)
+	Assert(t, err == nil, err)
+
+	// TODO: check apikey and arguments
+	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(okResponse))
+	})
+
+	tc := httpclienttest.NewTestClient(h)
+	defer tc.Close()
+
+	ctx := context.Background()
+
+	prodJSON, err := getProductJSON(ctx, &(tc.Client))
+	Assert(t, err == nil, err)
+
+	prods, err := convertProductJSONToObj(ctx, prodJSON)
+	Assert(t, err == nil, err)
+	Assert(t, len(prods.Results) == 201, "expected 201 entries")
 }
 
 func Assert(t *testing.T, boolStatement bool, errorValue interface{}) {

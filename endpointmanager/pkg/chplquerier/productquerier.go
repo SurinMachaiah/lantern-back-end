@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	lhttp "github.com/onc-healthit/lantern-back-end/endpointmanager/pkg/http"
+	"github.com/onc-healthit/lantern-back-end/endpointmanager/pkg/httpclient"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 
@@ -55,23 +55,27 @@ type chplCertifiedProductList struct {
 	Results []chplCertifiedProduct `json:"results"`
 }
 
-func GetCHPLProducts(ctx context.Context, store endpointmanager.HealthITProductStore) error {
+func GetCHPLProducts(ctx context.Context, store endpointmanager.HealthITProductStore, cli *httpclient.Client) error {
 	storeWContext := endpointmanager.HealthITProductStoreWithContext{store}
 
 	fmt.Printf("requesting products\n")
 
-	prodJSON, err := getProductJSON(ctx)
+	prodJSON, err := getProductJSON(ctx, cli)
 	if err != nil {
 		return errors.Wrap(err, "getting health IT product JSON failed")
 	}
+	fmt.Printf("done requesting products\n")
 
+	fmt.Printf("converting products")
 	prodList, err := convertProductJSONToObj(ctx, prodJSON)
 	if err != nil {
 		return errors.Wrap(err, "converting health IT product JSON into a 'chplCertifiedProductList' object failed")
 	}
-	fmt.Printf("done requestion products\n")
+	fmt.Printf("done converting products")
 
+	fmt.Printf("persisting products")
 	err = persistProducts(ctx, storeWContext, prodList)
+	fmt.Printf("done persisting products")
 	return errors.Wrap(err, "persisting the list of retrieved health IT products failed")
 }
 
@@ -88,14 +92,13 @@ func makeCHPLProductURL() (*url.URL, error) {
 	return chplURL, nil
 }
 
-func getProductJSON(ctx context.Context) ([]byte, error) {
+func getProductJSON(ctx context.Context, client *httpclient.Client) ([]byte, error) {
 	chplURL, err := makeCHPLProductURL()
 	if err != nil {
 		return nil, errors.Wrap(err, "creating the URL to query CHPL failed")
 	}
 
 	// request ceritified products list
-	client := lhttp.GetClient()
 	req, err := http.NewRequest("GET", chplURL.String(), nil)
 	req = req.WithContext(ctx)
 
