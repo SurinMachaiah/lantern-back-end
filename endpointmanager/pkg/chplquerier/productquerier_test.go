@@ -7,15 +7,16 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"path/filepath"
 	"testing"
 	"time"
 
 	"github.com/pkg/errors"
 
+	"github.com/onc-healthit/lantern-back-end/endpointmanager/internal/httpclienttest"
 	"github.com/onc-healthit/lantern-back-end/endpointmanager/pkg/endpointmanager"
 	"github.com/onc-healthit/lantern-back-end/endpointmanager/pkg/endpointmanager/mock"
-	"github.com/onc-healthit/lantern-back-end/endpointmanager/pkg/httpclient/httpclienttest"
 
 	logtest "github.com/sirupsen/logrus/hooks/test"
 
@@ -417,32 +418,122 @@ func Test_persistProducts(t *testing.T) {
 }
 
 func Test_getProductJSON(t *testing.T) {
-	path := filepath.Join("testdata", "chpl_certified_products.json")
-	okResponse, err := ioutil.ReadFile(path)
+	var err error
+	var tc *httpclienttest.TestClient
+	var ctx context.Context
+
+	// basic test
+
+	// mock JSON includes 201 product entries
+	expectedProdsReceived := 201
+
+	tc, err = basicTestClient()
 	Assert(t, err == nil, err)
-
-	// TODO: check apikey and arguments
-	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte(okResponse))
-	})
-
-	tc := httpclienttest.NewTestClient(h)
 	defer tc.Close()
 
-	ctx := context.Background()
+	ctx = context.Background()
 
 	prodJSON, err := getProductJSON(ctx, &(tc.Client))
 	Assert(t, err == nil, err)
 
+	// convert received JSON so we can count the number of entries received
 	prods, err := convertProductJSONToObj(ctx, prodJSON)
 	Assert(t, err == nil, err)
-	Assert(t, len(prods.Results) == 201, "expected 201 entries")
+	actualProdsReceived := len(prods.Results)
+	Assert(t, actualProdsReceived == expectedProdsReceived, fmt.Sprintf("Expected to receive %d products Actually received %d products.", expectedProdsReceived, actualProdsReceived))
+
+	// test context ended.
+	// also checks what happens when an http request fails
+
+	tc, err = basicTestClient()
+	Assert(t, err == nil, err)
+	defer tc.Close()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	_, err = getProductJSON(ctx, &(tc.Client))
+	switch reqErr := errors.Cause(err).(type) {
+	case *url.Error:
+		Assert(t, reqErr.Err == context.Canceled, "Expected error stating that context was canceled")
+	default:
+		t.Fatal("Expected context canceled error")
+	}
+}
+
+func Test_GetCHPLProducts(t *testing.T) {
+	var err error
+	var tc *httpclienttest.TestClient
+	var ctx context.Context
+	var store endpointmanager.HealthITProductStore
+
+	// basic test
+
+	// mock JSON includes 201 product entries, but w duplicates, the number stored is 168.
+	expectedProdsStored := 168
+
+	tc, err = basicTestClient()
+	Assert(t, err == nil, err)
+	defer tc.Close()
+
+	ctx = context.Background()
+
+	store, err = createStore()
+	if err != nil {
+		t.Fatalf("create mock store error\n%v", err)
+	}
+
+	err = GetCHPLProducts(ctx, store, &(tc.Client))
+	Assert(t, err == nil, err)
+	actualProdsStored := len(store.(*mockStore).data)
+	Assert(t, actualProdsStored == expectedProdsStored, fmt.Sprintf("Expected %d products stored. Actually had %d products stored.", expectedProdsStored, actualProdsStored))
+
+	// test context ended
+	// also checks what happens when an http request fails
+
+	tc, err = basicTestClient()
+	Assert(t, err == nil, err)
+	defer tc.Close()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	store, err = createStore()
+	if err != nil {
+		t.Fatalf("create mock store error\n%v", err)
+	}
+
+	err = GetCHPLProducts(ctx, store, &(tc.Client))
+	switch reqErr := errors.Cause(err).(type) {
+	case *url.Error:
+		Assert(t, reqErr.Err == context.Canceled, "Expected error stating that context was canceled")
+	default:
+		t.Fatal("Expected context canceled error")
+	}
+
 }
 
 func Assert(t *testing.T, boolStatement bool, errorValue interface{}) {
 	if !boolStatement {
 		t.Fatalf("%s: %v", t.Name(), errorValue)
 	}
+}
+
+func basicTestClient() (*httpclienttest.TestClient, error) {
+
+	path := filepath.Join("testdata", "chpl_certified_products.json")
+	okResponse, err := ioutil.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+
+	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(okResponse))
+	})
+
+	tc := httpclienttest.NewTestClient(h)
+
+	return tc, nil
 }
 
 func createStore() (endpointmanager.HealthITProductStore, error) {

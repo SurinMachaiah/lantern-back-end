@@ -12,7 +12,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/onc-healthit/lantern-back-end/endpointmanager/pkg/httpclient"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 
@@ -55,7 +54,7 @@ type chplCertifiedProductList struct {
 	Results []chplCertifiedProduct `json:"results"`
 }
 
-func GetCHPLProducts(ctx context.Context, store endpointmanager.HealthITProductStore, cli *httpclient.Client) error {
+func GetCHPLProducts(ctx context.Context, store endpointmanager.HealthITProductStore, cli *http.Client) error {
 	storeWContext := endpointmanager.HealthITProductStoreWithContext{store}
 
 	fmt.Printf("requesting products\n")
@@ -92,7 +91,7 @@ func makeCHPLProductURL() (*url.URL, error) {
 	return chplURL, nil
 }
 
-func getProductJSON(ctx context.Context, client *httpclient.Client) ([]byte, error) {
+func getProductJSON(ctx context.Context, client *http.Client) ([]byte, error) {
 	chplURL, err := makeCHPLProductURL()
 	if err != nil {
 		return nil, errors.Wrap(err, "creating the URL to query CHPL failed")
@@ -108,9 +107,7 @@ func getProductJSON(ctx context.Context, client *httpclient.Client) ([]byte, err
 	}
 	defer resp.Body.Close()
 
-	if resp == nil {
-		return nil, errors.New("CHPL certified products request had nil response")
-	} else if resp.StatusCode != http.StatusOK {
+	if resp.StatusCode != http.StatusOK {
 		return nil, errors.New("CHPL certified products request responded with status: " + resp.Status)
 	}
 

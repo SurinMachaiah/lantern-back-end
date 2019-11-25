@@ -6,22 +6,19 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
-
-	"github.com/onc-healthit/lantern-back-end/endpointmanager/pkg/httpclient"
 )
 
 type TestClient struct {
 	teardown func()
-	httpclient.Client
+	http.Client
 }
 
 func NewTestClient(handler http.Handler) *TestClient {
 	httpcli, teardown := testingHTTPClient(handler)
-	cli := httpclient.NewClient(httpclient.SetHTTPClient(httpcli))
 
 	tc := TestClient{
 		teardown,
-		*cli,
+		*httpcli,
 	}
 
 	return &tc
