@@ -35,18 +35,14 @@ type HealthITProduct struct {
 // HealthITProductStore is the interface for interacting with the storage layer that holds
 // health IT product objects.
 type HealthITProductStore interface {
-	GetHealthITProduct(int) (*HealthITProduct, error)
-	GetHealthITProductUsingNameAndVersion(string, string) (*HealthITProduct, error)
+	GetHealthITProduct(context.Context, int) (*HealthITProduct, error)
+	GetHealthITProductUsingNameAndVersion(context.Context, string, string) (*HealthITProduct, error)
 
-	AddHealthITProduct(*HealthITProduct) error
-	UpdateHealthITProduct(*HealthITProduct) error
-	DeleteHealthITProduct(*HealthITProduct) error
+	AddHealthITProduct(context.Context, *HealthITProduct) error
+	UpdateHealthITProduct(context.Context, *HealthITProduct) error
+	DeleteHealthITProduct(context.Context, *HealthITProduct) error
 
 	Close()
-}
-
-type HealthITProductStoreWithContext struct {
-	HealthITProductStore
 }
 
 // Equal checks each field of the two HealthITProducts except for the database ID, CHPL ID, CreatedAt and UpdatedAt fields to see if they are equal.
@@ -119,44 +115,4 @@ func (hitp *HealthITProduct) Update(hitp2 *HealthITProduct) error {
 	hitp.CHPLID = hitp2.CHPLID
 
 	return nil
-}
-
-func (hitpStore *HealthITProductStoreWithContext) GetHealthITProductWithContext(ctx context.Context, id int) (*HealthITProduct, error) {
-	if ctx.Err() != nil {
-		return nil, NewErrOpCanceled(ctx.Err())
-	}
-
-	return hitpStore.GetHealthITProduct(id)
-}
-
-func (hitpStore *HealthITProductStoreWithContext) GetHealthITProductUsingNameAndVersionWithContext(ctx context.Context, name string, version string) (*HealthITProduct, error) {
-	if ctx.Err() != nil {
-		return nil, NewErrOpCanceled(ctx.Err())
-	}
-
-	return hitpStore.GetHealthITProductUsingNameAndVersion(name, version)
-}
-
-func (hitpStore *HealthITProductStoreWithContext) AddHealthITProductWithContext(ctx context.Context, hitp *HealthITProduct) error {
-	if ctx.Err() != nil {
-		return NewErrOpCanceled(ctx.Err())
-	}
-
-	return hitpStore.AddHealthITProduct(hitp)
-}
-
-func (hitpStore *HealthITProductStoreWithContext) UpdateHealthITProductWithContext(ctx context.Context, hitp *HealthITProduct) error {
-	if ctx.Err() != nil {
-		return NewErrOpCanceled(ctx.Err())
-	}
-
-	return hitpStore.UpdateHealthITProduct(hitp)
-}
-
-func (hitpStore *HealthITProductStoreWithContext) DeleteHealthITProductWithContext(ctx context.Context, hitp *HealthITProduct) error {
-	if ctx.Err() != nil {
-		return NewErrOpCanceled(ctx.Err())
-	}
-
-	return hitpStore.DeleteHealthITProduct(hitp)
 }
