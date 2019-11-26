@@ -57,8 +57,6 @@ type chplCertifiedProductList struct {
 // GetCHPLProducts queries CHPL for its HealthIT products using 'cli' and stores the products in 'store'
 // within the given context 'ctx'.
 func GetCHPLProducts(ctx context.Context, store endpointmanager.HealthITProductStore, cli *http.Client) error {
-	storeWContext := endpointmanager.HealthITProductStoreWithContext{store}
-
 	fmt.Printf("requesting products\n")
 
 	prodJSON, err := getProductJSON(ctx, cli)
@@ -75,7 +73,7 @@ func GetCHPLProducts(ctx context.Context, store endpointmanager.HealthITProductS
 	fmt.Printf("done converting products")
 
 	fmt.Printf("persisting products")
-	err = persistProducts(ctx, storeWContext, prodList)
+	err = persistProducts(ctx, store, prodList)
 	fmt.Printf("done persisting products")
 	return errors.Wrap(err, "persisting the list of retrieved health IT products failed")
 }
@@ -128,8 +126,11 @@ func convertProductJSONToObj(ctx context.Context, prodJSON []byte) (*chplCertifi
 	var prodList chplCertifiedProductList
 
 	// don't unmarshal the JSON if the context has ended
-	if ctx.Err() != nil {
+	select {
+	case <-ctx.Done():
 		return nil, errors.Wrap(ctx.Err(), "Unable to convert product JSON to objects - context ended")
+	default:
+		// ok
 	}
 
 	err := json.Unmarshal(prodJSON, &prodList)
@@ -188,7 +189,7 @@ func getAPIURL(apiDocStr string) (string, error) {
 // persists the products parsed from CHPL. Of note, CHPL includes many entries for a single product. The entry
 // associated with the most recent certifition edition, most recent certification date, or most criteria is the
 // one that is stored.
-func persistProducts(ctx context.Context, store endpointmanager.HealthITProductStoreWithContext, prodList *chplCertifiedProductList) error {
+func persistProducts(ctx context.Context, store endpointmanager.HealthITProductStore, prodList *chplCertifiedProductList) error {
 	for i, prod := range prodList.Results {
 
 		if i%100 == 0 {
@@ -218,17 +219,17 @@ func persistProducts(ctx context.Context, store endpointmanager.HealthITProductS
 // exist, determine if it makes sense to update the product (certified to more recent edition, certified at a
 // later date, has more certification criteria), or not.
 func persistProduct(ctx context.Context,
-	store endpointmanager.HealthITProductStoreWithContext,
+	store endpointmanager.HealthITProductStore,
 	prod *chplCertifiedProduct) error {
 
 	newDbProd, err := parseHITProd(prod)
 	if err != nil {
 		return err
 	}
-	existingDbProd, err := store.GetHealthITProductUsingNameAndVersionWithContext(ctx, prod.Product, prod.Version)
+	existingDbProd, err := store.GetHealthITProductUsingNameAndVersion(ctx, prod.Product, prod.Version)
 
 	if err == sql.ErrNoRows { // need to add new entry
-		err = store.AddHealthITProductWithContext(ctx, newDbProd)
+		err = store.AddHealthITProduct(ctx, newDbProd)
 		if err != nil {
 			return errors.Wrap(err, "adding health IT product to store failed")
 		}
@@ -245,7 +246,7 @@ func persistProduct(ctx context.Context,
 
 		if needsUpdate {
 			existingDbProd.Update(newDbProd)
-			err = store.UpdateHealthITProductWithContext(ctx, existingDbProd)
+			err = store.UpdateHealthITProduct(ctx, existingDbProd)
 			if err != nil {
 				return errors.Wrap(err, "updating health IT product to store failed")
 			}
