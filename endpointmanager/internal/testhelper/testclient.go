@@ -33,6 +33,36 @@ func (tc *TestClient) Close() {
 	tc.teardown()
 }
 
+func NewTestClientWithResponse(response []byte) *TestClient {
+	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Write(response)
+	})
+
+	tc := NewTestClient(h)
+
+	return tc
+}
+
+func NewTestClientWith404() *TestClient {
+	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Error(w, "sample 404 error", http.StatusNotFound)
+	})
+
+	tc := NewTestClient(h)
+
+	return tc
+}
+
+func NewTestClientWith502() *TestClient {
+	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Error(w, "sample 502 error", http.StatusBadGateway)
+	})
+
+	tc := NewTestClient(h)
+
+	return tc
+}
+
 func testingHTTPClient(handler http.Handler) (*http.Client, func()) {
 	s := httptest.NewTLSServer(handler)
 

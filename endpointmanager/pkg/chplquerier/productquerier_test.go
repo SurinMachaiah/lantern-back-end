@@ -2,11 +2,9 @@ package chplquerier
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"net/http"
 	"net/url"
 	"path/filepath"
 	"testing"
@@ -310,10 +308,8 @@ func Test_prodNeedsUpdate(t *testing.T) {
 }
 
 func Test_persistProduct(t *testing.T) {
-	store, err := createStore()
-	if err != nil {
-		t.Fatalf("create mock store error\n%v", err)
-	}
+	var err error
+	store := mock.NewBasicMockHealthITProductStore()
 
 	var ctx context.Context
 	var cancel context.CancelFunc
@@ -325,7 +321,7 @@ func Test_persistProduct(t *testing.T) {
 	ctx, cancel = context.WithCancel(context.Background())
 	cancel()
 	err = persistProduct(ctx, store, &prod)
-	th.Assert(t, len(store.(*mockStore).data) == 0, "should not have stored data")
+	th.Assert(t, len(store.(*mock.BasicMockStore).HealthITProductData) == 0, "should not have stored data")
 	th.Assert(t, errors.Cause(err) == context.Canceled, "should have errored out with root cause that the context was canceled")
 
 	// reset context
@@ -334,24 +330,24 @@ func Test_persistProduct(t *testing.T) {
 	// check that new item is stored
 	err = persistProduct(ctx, store, &prod)
 	th.Assert(t, err == nil, err)
-	th.Assert(t, len(store.(*mockStore).data) == 1, "did not store data as expected")
-	th.Assert(t, hitp.Equal(store.(*mockStore).data[0]), "stored data does not equal expected store data")
+	th.Assert(t, len(store.(*mock.BasicMockStore).HealthITProductData) == 1, "did not store data as expected")
+	th.Assert(t, hitp.Equal(store.(*mock.BasicMockStore).HealthITProductData[0]), "stored data does not equal expected store data")
 
 	// check that newer updated item replaces item
 	prod.Edition = "2015"
 	hitp.CertificationEdition = "2015"
 	err = persistProduct(ctx, store, &prod)
 	th.Assert(t, err == nil, err)
-	th.Assert(t, len(store.(*mockStore).data) == 1, "did not store data as expected")
-	th.Assert(t, hitp.Equal(store.(*mockStore).data[0]), "stored data does not equal expected store data")
+	th.Assert(t, len(store.(*mock.BasicMockStore).HealthITProductData) == 1, "did not store data as expected")
+	th.Assert(t, hitp.Equal(store.(*mock.BasicMockStore).HealthITProductData[0]), "stored data does not equal expected store data")
 
 	// check that older updated item does not replace item
 	prod.Edition = "2014"
 	hitp.CertificationEdition = "2015" // keeping 2015
 	err = persistProduct(ctx, store, &prod)
 	th.Assert(t, err == nil, err)
-	th.Assert(t, len(store.(*mockStore).data) == 1, "did not store data as expected")
-	th.Assert(t, hitp.Equal(store.(*mockStore).data[0]), "stored data does not equal expected store data")
+	th.Assert(t, len(store.(*mock.BasicMockStore).HealthITProductData) == 1, "did not store data as expected")
+	th.Assert(t, hitp.Equal(store.(*mock.BasicMockStore).HealthITProductData[0]), "stored data does not equal expected store data")
 
 	// check that malformed product throws error
 	prod.APIDocumentation = "170.315 (g)(7),http://carefluence.com/Carefluence-OpenAPI-Documentation.html"
@@ -367,10 +363,8 @@ func Test_persistProduct(t *testing.T) {
 }
 
 func Test_persistProducts(t *testing.T) {
-	store, err := createStore()
-	if err != nil {
-		t.Fatalf("create mock store error\n%v", err)
-	}
+	var err error
+	store := mock.NewBasicMockHealthITProductStore()
 
 	ctx := context.Background()
 
@@ -385,17 +379,14 @@ func Test_persistProducts(t *testing.T) {
 	err = persistProducts(ctx, store, &prodList)
 	th.Assert(t, err == nil, err)
 
-	th.Assert(t, len(store.(*mockStore).data) == 2, "did not persist two products as expected")
-	th.Assert(t, store.(*mockStore).data[0].Name == testCHPLProd.Product, "Did not store first product as expected")
-	th.Assert(t, store.(*mockStore).data[1].Name == "another prod", "Did not store second product as expected")
+	th.Assert(t, len(store.(*mock.BasicMockStore).HealthITProductData) == 2, "did not persist two products as expected")
+	th.Assert(t, store.(*mock.BasicMockStore).HealthITProductData[0].Name == testCHPLProd.Product, "Did not store first product as expected")
+	th.Assert(t, store.(*mock.BasicMockStore).HealthITProductData[1].Name == "another prod", "Did not store second product as expected")
 
 	// persist with errors
 
 	hook := logtest.NewGlobal()
-	store, err = createStore()
-	if err != nil {
-		t.Fatalf("create mock store error\n%v", err)
-	}
+	store = mock.NewBasicMockHealthITProductStore()
 
 	prod2.APIDocumentation = "170.315 (g)(7),http://carefluence.com/Carefluence-OpenAPI-Documentation.html"
 	expectedErr := "retreiving the API URL from the health IT product API documentation list failed: unexpected format for api doc string"
@@ -405,8 +396,8 @@ func Test_persistProducts(t *testing.T) {
 	// don't expect the function to return with errors
 	th.Assert(t, err == nil, err)
 	// only expect one item to be stored
-	th.Assert(t, len(store.(*mockStore).data) == 1, "did not persist one product as expected")
-	th.Assert(t, store.(*mockStore).data[0].Name == testCHPLProd.Product, "Did not store first product as expected")
+	th.Assert(t, len(store.(*mock.BasicMockStore).HealthITProductData) == 1, "did not persist one product as expected")
+	th.Assert(t, store.(*mock.BasicMockStore).HealthITProductData[0].Name == testCHPLProd.Product, "Did not store first product as expected")
 	// expect presence of a log message
 	found := false
 	for i := range hook.Entries {
@@ -421,10 +412,7 @@ func Test_persistProducts(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	store, err = createStore()
-	if err != nil {
-		t.Fatalf("create mock store error\n%v", err)
-	}
+	store = mock.NewBasicMockHealthITProductStore()
 
 	prod2 = testCHPLProd
 	prod2.Product = "another prod"
@@ -494,14 +482,11 @@ func Test_GetCHPLProducts(t *testing.T) {
 
 	ctx = context.Background()
 
-	store, err = createStore()
-	if err != nil {
-		t.Fatalf("create mock store error\n%v", err)
-	}
+	store = mock.NewBasicMockHealthITProductStore()
 
 	err = GetCHPLProducts(ctx, store, &(tc.Client))
 	th.Assert(t, err == nil, err)
-	actualProdsStored := len(store.(*mockStore).data)
+	actualProdsStored := len(store.(*mock.BasicMockStore).HealthITProductData)
 	th.Assert(t, actualProdsStored == expectedProdsStored, fmt.Sprintf("Expected %d products stored. Actually had %d products stored.", expectedProdsStored, actualProdsStored))
 
 	// test context ended
@@ -514,10 +499,7 @@ func Test_GetCHPLProducts(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	store, err = createStore()
-	if err != nil {
-		t.Fatalf("create mock store error\n%v", err)
-	}
+	store = mock.NewBasicMockHealthITProductStore()
 
 	err = GetCHPLProducts(ctx, store, &(tc.Client))
 	switch reqErr := errors.Cause(err).(type) {
@@ -537,63 +519,7 @@ func basicTestClient() (*th.TestClient, error) {
 		return nil, err
 	}
 
-	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte(okResponse))
-	})
-
-	tc := th.NewTestClient(h)
+	tc := th.NewTestClientWithResponse(okResponse)
 
 	return tc, nil
-}
-
-func createStore() (endpointmanager.HealthITProductStore, error) {
-
-	store := mockStore{}
-
-	store.AddHealthITProductFn = func(_ context.Context, hitp *endpointmanager.HealthITProduct) error {
-		for _, existingHitp := range store.data {
-			if existingHitp.ID == hitp.ID {
-				return errors.New("HealthITProduct with that ID already exists")
-			}
-		}
-		// want to store a copy
-		newHitp := *hitp
-		newHitp.ID = len(store.data) + 1
-		store.data = append(store.data, &newHitp)
-		return nil
-	}
-
-	store.GetHealthITProductUsingNameAndVersionFn = func(_ context.Context, name string, version string) (*endpointmanager.HealthITProduct, error) {
-		for _, existingHitp := range store.data {
-			if existingHitp.Name == name && existingHitp.Version == version {
-				// want to return a copy
-				hitp := *existingHitp
-				return &hitp, nil
-			}
-		}
-		return nil, sql.ErrNoRows
-	}
-
-	store.UpdateHealthITProductFn = func(_ context.Context, hitp *endpointmanager.HealthITProduct) error {
-		var existingHitp *endpointmanager.HealthITProduct
-		var i int
-		replace := false
-		for i, existingHitp = range store.data {
-			if existingHitp.ID == hitp.ID {
-				replace = true
-				break
-			}
-		}
-		if replace {
-			// replacing with copy
-			updatedHitp := *hitp
-			store.data[i] = &updatedHitp
-		} else {
-			return errors.New("No existing entry exists")
-		}
-
-		return nil
-	}
-
-	return &store, nil
 }
