@@ -314,7 +314,6 @@ func Test_persistProduct(t *testing.T) {
 	if err != nil {
 		t.Fatalf("create mock store error\n%v", err)
 	}
-	storeWContext := endpointmanager.HealthITProductStoreWithContext{store}
 
 	var ctx context.Context
 	var cancel context.CancelFunc
@@ -325,7 +324,7 @@ func Test_persistProduct(t *testing.T) {
 	// check that ended context when no element in store fails as expected
 	ctx, cancel = context.WithCancel(context.Background())
 	cancel()
-	err = persistProduct(ctx, storeWContext, &prod)
+	err = persistProduct(ctx, store, &prod)
 	th.Assert(t, len(store.(*mockStore).data) == 0, "should not have stored data")
 	th.Assert(t, errors.Cause(err) == context.Canceled, "should have errored out with root cause that the context was canceled")
 
@@ -333,7 +332,7 @@ func Test_persistProduct(t *testing.T) {
 	ctx = context.Background()
 
 	// check that new item is stored
-	err = persistProduct(ctx, storeWContext, &prod)
+	err = persistProduct(ctx, store, &prod)
 	th.Assert(t, err == nil, err)
 	th.Assert(t, len(store.(*mockStore).data) == 1, "did not store data as expected")
 	th.Assert(t, hitp.Equal(store.(*mockStore).data[0]), "stored data does not equal expected store data")
@@ -341,7 +340,7 @@ func Test_persistProduct(t *testing.T) {
 	// check that newer updated item replaces item
 	prod.Edition = "2015"
 	hitp.CertificationEdition = "2015"
-	err = persistProduct(ctx, storeWContext, &prod)
+	err = persistProduct(ctx, store, &prod)
 	th.Assert(t, err == nil, err)
 	th.Assert(t, len(store.(*mockStore).data) == 1, "did not store data as expected")
 	th.Assert(t, hitp.Equal(store.(*mockStore).data[0]), "stored data does not equal expected store data")
@@ -349,21 +348,21 @@ func Test_persistProduct(t *testing.T) {
 	// check that older updated item does not replace item
 	prod.Edition = "2014"
 	hitp.CertificationEdition = "2015" // keeping 2015
-	err = persistProduct(ctx, storeWContext, &prod)
+	err = persistProduct(ctx, store, &prod)
 	th.Assert(t, err == nil, err)
 	th.Assert(t, len(store.(*mockStore).data) == 1, "did not store data as expected")
 	th.Assert(t, hitp.Equal(store.(*mockStore).data[0]), "stored data does not equal expected store data")
 
 	// check that malformed product throws error
 	prod.APIDocumentation = "170.315 (g)(7),http://carefluence.com/Carefluence-OpenAPI-Documentation.html"
-	err = persistProduct(ctx, storeWContext, &prod)
+	err = persistProduct(ctx, store, &prod)
 	th.Assert(t, err != nil, "expected error parsing product")
 
 	// check that ambiguous update throws error
 	prod = testCHPLProd
 	prod.Edition = "2015" // same date as what is in store
 	prod.CertificationStatus = "Retired"
-	err = persistProduct(ctx, storeWContext, &prod)
+	err = persistProduct(ctx, store, &prod)
 	th.Assert(t, err != nil, "expected error updating product")
 }
 
@@ -372,7 +371,6 @@ func Test_persistProducts(t *testing.T) {
 	if err != nil {
 		t.Fatalf("create mock store error\n%v", err)
 	}
-	storeWContext := endpointmanager.HealthITProductStoreWithContext{store}
 
 	ctx := context.Background()
 
@@ -384,7 +382,7 @@ func Test_persistProducts(t *testing.T) {
 
 	prodList := chplCertifiedProductList{Results: []chplCertifiedProduct{prod1, prod2}}
 
-	err = persistProducts(ctx, storeWContext, &prodList)
+	err = persistProducts(ctx, store, &prodList)
 	th.Assert(t, err == nil, err)
 
 	th.Assert(t, len(store.(*mockStore).data) == 2, "did not persist two products as expected")
@@ -398,13 +396,12 @@ func Test_persistProducts(t *testing.T) {
 	if err != nil {
 		t.Fatalf("create mock store error\n%v", err)
 	}
-	storeWContext = endpointmanager.HealthITProductStoreWithContext{store}
 
 	prod2.APIDocumentation = "170.315 (g)(7),http://carefluence.com/Carefluence-OpenAPI-Documentation.html"
 	expectedErr := "retreiving the API URL from the health IT product API documentation list failed: unexpected format for api doc string"
 	prodList = chplCertifiedProductList{Results: []chplCertifiedProduct{prod1, prod2}}
 
-	err = persistProducts(ctx, storeWContext, &prodList)
+	err = persistProducts(ctx, store, &prodList)
 	// don't expect the function to return with errors
 	th.Assert(t, err == nil, err)
 	// only expect one item to be stored
@@ -428,12 +425,11 @@ func Test_persistProducts(t *testing.T) {
 	if err != nil {
 		t.Fatalf("create mock store error\n%v", err)
 	}
-	storeWContext = endpointmanager.HealthITProductStoreWithContext{store}
 
 	prod2 = testCHPLProd
 	prod2.Product = "another prod"
 
-	err = persistProducts(ctx, storeWContext, &prodList)
+	err = persistProducts(ctx, store, &prodList)
 	th.Assert(t, errors.Cause(err) == context.Canceled, "expected persistProducts to error out due to context ending")
 }
 
@@ -554,7 +550,7 @@ func createStore() (endpointmanager.HealthITProductStore, error) {
 
 	store := mockStore{}
 
-	store.AddHealthITProductFn = func(hitp *endpointmanager.HealthITProduct) error {
+	store.AddHealthITProductFn = func(_ context.Context, hitp *endpointmanager.HealthITProduct) error {
 		for _, existingHitp := range store.data {
 			if existingHitp.ID == hitp.ID {
 				return errors.New("HealthITProduct with that ID already exists")
@@ -567,7 +563,7 @@ func createStore() (endpointmanager.HealthITProductStore, error) {
 		return nil
 	}
 
-	store.GetHealthITProductUsingNameAndVersionFn = func(name string, version string) (*endpointmanager.HealthITProduct, error) {
+	store.GetHealthITProductUsingNameAndVersionFn = func(_ context.Context, name string, version string) (*endpointmanager.HealthITProduct, error) {
 		for _, existingHitp := range store.data {
 			if existingHitp.Name == name && existingHitp.Version == version {
 				// want to return a copy
@@ -578,7 +574,7 @@ func createStore() (endpointmanager.HealthITProductStore, error) {
 		return nil, sql.ErrNoRows
 	}
 
-	store.UpdateHealthITProductFn = func(hitp *endpointmanager.HealthITProduct) error {
+	store.UpdateHealthITProductFn = func(_ context.Context, hitp *endpointmanager.HealthITProduct) error {
 		var existingHitp *endpointmanager.HealthITProduct
 		var i int
 		replace := false
