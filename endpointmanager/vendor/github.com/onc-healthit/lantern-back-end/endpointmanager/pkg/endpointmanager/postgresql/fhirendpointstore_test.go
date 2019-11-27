@@ -10,9 +10,7 @@ import (
 
 func Test_PersistFHIREndpoint(t *testing.T) {
 	var err error
-	var ctx context.Context
-
-	ctx = context.Background()
+	ctx := context.Background()
 
 	store, err := NewStore(viper.GetString("dbhost"), viper.GetInt("dbport"), viper.GetString("dbuser"), viper.GetString("dbpass"), viper.GetString("dbname"), viper.GetString("dbsslmode"))
 	if err != nil {

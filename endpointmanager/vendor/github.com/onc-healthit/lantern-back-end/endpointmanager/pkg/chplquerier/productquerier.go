@@ -85,6 +85,9 @@ func getProductJSON(ctx context.Context, client *http.Client) ([]byte, error) {
 
 	// request ceritified products list
 	req, err := http.NewRequest("GET", chplURL.String(), nil)
+	if err != nil {
+		return nil, errors.Wrap(err, "creating http request failed")
+	}
 	req = req.WithContext(ctx)
 
 	resp, err := client.Do(req)
@@ -240,7 +243,10 @@ func persistProduct(ctx context.Context,
 		}
 
 		if needsUpdate {
-			existingDbProd.Update(newDbProd)
+			err = existingDbProd.Update(newDbProd)
+			if err != nil {
+				return errors.Wrap(err, "updating health IT product object failed")
+			}
 			err = store.UpdateHealthITProduct(ctx, existingDbProd)
 			if err != nil {
 				return errors.Wrap(err, "updating health IT product to store failed")
