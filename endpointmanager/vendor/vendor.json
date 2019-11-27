@@ -203,28 +203,40 @@
 			"revisionTime": "2019-11-13T14:25:22Z"
 		},
 		{
-			"checksumSHA1": "j9ovMqazpbA50U3rdm+uTdDq2tc=",
+			"checksumSHA1": "/PBHdgf+D15cJ4ZFoWfSACZSR9g=",
 			"path": "github.com/onc-healthit/lantern-back-end/endpointmanager/cmd",
-			"revision": "72b6ea61c5c4d0d4a2f9eadb4e4ce04313931833",
-			"revisionTime": "2019-11-13T17:21:32Z"
+			"revision": "4cbb1b55add4795ce0392245cd99bd7c10a97801",
+			"revisionTime": "2019-11-27T13:36:23Z"
 		},
 		{
-			"checksumSHA1": "po/aUBuClhUxqJ1qodOR1QHtX9w=",
+			"checksumSHA1": "O00wY+tJz+Lou65Tui+6yn3O4yM=",
+			"path": "github.com/onc-healthit/lantern-back-end/endpointmanager/internal/testhelper",
+			"revision": "4cbb1b55add4795ce0392245cd99bd7c10a97801",
+			"revisionTime": "2019-11-27T13:36:23Z"
+		},
+		{
+			"checksumSHA1": "suAUKkVfIsYl2BGY3mizN5Thftg=",
+			"path": "github.com/onc-healthit/lantern-back-end/endpointmanager/pkg/chplquerier",
+			"revision": "4cbb1b55add4795ce0392245cd99bd7c10a97801",
+			"revisionTime": "2019-11-27T13:36:23Z"
+		},
+		{
+			"checksumSHA1": "4y91eRZSLbWs42kv0zHVLMkBCF8=",
 			"path": "github.com/onc-healthit/lantern-back-end/endpointmanager/pkg/endpointmanager",
-			"revision": "72b6ea61c5c4d0d4a2f9eadb4e4ce04313931833",
-			"revisionTime": "2019-11-13T17:21:32Z"
+			"revision": "4cbb1b55add4795ce0392245cd99bd7c10a97801",
+			"revisionTime": "2019-11-27T13:36:23Z"
 		},
 		{
-			"checksumSHA1": "20FjcXsyLl8/fWJgMq+6PMlhjmg=",
+			"checksumSHA1": "zwXXEYtsodBPcvIo0X6MwWVid7U=",
 			"path": "github.com/onc-healthit/lantern-back-end/endpointmanager/pkg/endpointmanager/mock",
-			"revision": "72b6ea61c5c4d0d4a2f9eadb4e4ce04313931833",
-			"revisionTime": "2019-11-13T17:21:32Z"
+			"revision": "4cbb1b55add4795ce0392245cd99bd7c10a97801",
+			"revisionTime": "2019-11-27T13:36:23Z"
 		},
 		{
-			"checksumSHA1": "eXtw1uT0iIGrleGwZbEJMXpJSVk=",
+			"checksumSHA1": "BIU0/jYF7E3lrm+KM74DGGWLgfU=",
 			"path": "github.com/onc-healthit/lantern-back-end/endpointmanager/pkg/endpointmanager/postgresql",
-			"revision": "72b6ea61c5c4d0d4a2f9eadb4e4ce04313931833",
-			"revisionTime": "2019-11-13T17:21:32Z"
+			"revision": "4cbb1b55add4795ce0392245cd99bd7c10a97801",
+			"revisionTime": "2019-11-27T13:36:23Z"
 		},
 		{
 			"checksumSHA1": "NLfoOe6uZzHI6V0ZuncXSSmeCXk=",
@@ -235,6 +247,12 @@
 		{
 			"checksumSHA1": "O5bFO+v6bhXVAqFd/Fq5FZEoVGE=",
 			"path": "github.com/sirupsen/logrus",
+			"revision": "fb62dbe2f2a2c88b150fa1668a773505a7920a3d",
+			"revisionTime": "2019-10-14T20:23:44Z"
+		},
+		{
+			"checksumSHA1": "KW0/P62Hm8oTOljdBqNWTyX5MEk=",
+			"path": "github.com/sirupsen/logrus/hooks/test",
 			"revision": "fb62dbe2f2a2c88b150fa1668a773505a7920a3d",
 			"revisionTime": "2019-10-14T20:23:44Z"
 		},

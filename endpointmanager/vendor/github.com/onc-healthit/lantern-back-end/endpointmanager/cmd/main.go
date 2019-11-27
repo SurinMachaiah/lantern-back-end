@@ -1,10 +1,12 @@
 package main
 
 import (
+	"context"
 	"fmt"
-	"os"
 
+	"github.com/onc-healthit/lantern-back-end/endpointmanager/pkg/chplquerier"
 	"github.com/onc-healthit/lantern-back-end/endpointmanager/pkg/endpointmanager/postgresql"
+	"github.com/onc-healthit/lantern-back-end/endpointmanager/pkg/httpclient"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/spf13/viper"
@@ -37,22 +39,25 @@ func setupConfig() {
 	err = viper.BindEnv("logfile")
 	failOnError(err)
 
+	err = viper.BindEnv("chplapikey")
+	failOnError(err)
+
 	viper.SetDefault("dbhost", "localhost")
 	viper.SetDefault("dbport", 5432)
-	viper.SetDefault("dbuser", "postgres")
+	viper.SetDefault("dbuser", "lantern")
 	viper.SetDefault("dbpass", "postgrespassword")
-	viper.SetDefault("dbname", "postgres")
+	viper.SetDefault("dbname", "lantern")
 	viper.SetDefault("dbsslmode", "disable")
 	viper.SetDefault("logfile", "endpointmanagerLog.json")
 }
 
 func initializeLogger() {
-	log.SetFormatter(&log.JSONFormatter{})
-	f, err := os.OpenFile(viper.GetString("logfile"), os.O_WRONLY|os.O_CREATE, 0755)
-	if err != nil {
-		log.Fatal("LogFile creation error: ", err.Error())
-	}
-	log.SetOutput(f)
+	// log.SetFormatter(&log.JSONFormatter{})
+	// f, err := os.OpenFile(viper.GetString("logfile"), os.O_WRONLY|os.O_CREATE, 0755)
+	// if err != nil {
+	// 	log.Fatal("LogFile creation error: ", err.Error())
+	// }
+	// log.SetOutput(f)
 }
 
 func main() {
@@ -67,4 +72,11 @@ func main() {
 	}
 	defer store.Close()
 	fmt.Println("Successfully connected!")
+
+	ctx := context.Background()
+	client := httpclient.NewClient()
+	err = chplquerier.GetCHPLProducts(ctx, store, client)
+	if err != nil {
+		panic(err)
+	}
 }
