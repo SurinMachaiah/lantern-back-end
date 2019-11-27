@@ -9,6 +9,8 @@ import (
 var chplDomain string = "https://chpl.healthit.gov"
 var chplAPIPath string = "/rest"
 
+// creates the base chpl url using the provided path, a list of query arguments,
+// and the chpl api key.
 func makeCHPLURL(path string, queryArgs map[string]string) (*url.URL, error) {
 	queryArgsToSend := url.Values{}
 	chplURL, err := url.Parse(chplDomain)

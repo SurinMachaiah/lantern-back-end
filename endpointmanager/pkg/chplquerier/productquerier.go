@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -36,6 +35,10 @@ var fields [11]string = [11]string{
 	"certificationDate",
 	"practiceType"}
 
+type chplCertifiedProductList struct {
+	Results []chplCertifiedProduct `json:"results"`
+}
+
 type chplCertifiedProduct struct {
 	ID                  int    `json:"id"`
 	ChplProductNumber   string `json:"chplProductNumber"`
@@ -50,31 +53,26 @@ type chplCertifiedProduct struct {
 	APIDocumentation    string `json:"apiDocumentation"`
 }
 
-type chplCertifiedProductList struct {
-	Results []chplCertifiedProduct `json:"results"`
-}
-
 // GetCHPLProducts queries CHPL for its HealthIT products using 'cli' and stores the products in 'store'
 // within the given context 'ctx'.
 func GetCHPLProducts(ctx context.Context, store endpointmanager.HealthITProductStore, cli *http.Client) error {
-	fmt.Printf("requesting products\n")
-
+	log.Debug("requesting products from CHPL")
 	prodJSON, err := getProductJSON(ctx, cli)
 	if err != nil {
 		return errors.Wrap(err, "getting health IT product JSON failed")
 	}
-	fmt.Printf("done requesting products\n")
+	log.Debug("done requesting products from CHPL")
 
-	fmt.Printf("converting products")
+	log.Debug("converting chpl json into product objects")
 	prodList, err := convertProductJSONToObj(ctx, prodJSON)
 	if err != nil {
 		return errors.Wrap(err, "converting health IT product JSON into a 'chplCertifiedProductList' object failed")
 	}
-	fmt.Printf("done converting products")
+	log.Debug("done converting chpl json into product objects")
 
-	fmt.Printf("persisting products")
+	log.Debug("persisting chpl products")
 	err = persistProducts(ctx, store, prodList)
-	fmt.Printf("done persisting products")
+	log.Debug("done persisting chpl products")
 	return errors.Wrap(err, "persisting the list of retrieved health IT products failed")
 }
 
@@ -101,7 +99,7 @@ func getProductJSON(ctx context.Context, client *http.Client) ([]byte, error) {
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return nil, errors.Wrap(err, "Reading the CHPL response body failed")
+		return nil, errors.Wrap(err, "reading the CHPL response body failed")
 	}
 
 	return body, nil
@@ -192,26 +190,23 @@ func getAPIURL(apiDocStr string) (string, error) {
 func persistProducts(ctx context.Context, store endpointmanager.HealthITProductStore, prodList *chplCertifiedProductList) error {
 	for i, prod := range prodList.Results {
 
-		if i%100 == 0 {
-			log.Infof("Processing product %d/%d", i, len(prodList.Results))
-		}
-
-		ch := make(chan error)
-		go func() { ch <- persistProduct(ctx, store, &prod) }()
-
 		select {
 		case <-ctx.Done():
-			<-ch
 			return errors.Wrapf(ctx.Err(), "persisted %d out of %d products before context ended", i, len(prodList.Results))
-		case err := <-ch:
-			if err != nil {
-				log.Warn(err)
-				continue
-			}
+		default:
+			// ok
+		}
+
+		if i%100 == 0 {
+			log.Infof("persisting chpl product %d/%d", i, len(prodList.Results))
+		}
+
+		err := persistProduct(ctx, store, &prod)
+		if err != nil {
+			log.Warn(err)
+			continue
 		}
 	}
-
-	log.Info("Done processing products")
 	return nil
 }
 
@@ -233,7 +228,7 @@ func persistProduct(ctx context.Context,
 		if err != nil {
 			return errors.Wrap(err, "adding health IT product to store failed")
 		}
-	} else if err != nil { // error thrown other than no entry exists
+	} else if err != nil {
 		return errors.Wrap(err, "getting health IT product from store failed")
 	} else if !existingDbProd.Equal(newDbProd) {
 		// changes exist. these may be due to products that have been certified multiple times w/in chpl.

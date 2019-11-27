@@ -27,12 +27,8 @@ func NewTestClient(handler http.Handler) *TestClient {
 	return &tc
 }
 
-// Close closes resources associated with the test client and should be called after every
-// instantiation of the client.
-func (tc *TestClient) Close() {
-	tc.teardown()
-}
-
+// NewTestClientWithResponse creates a new TestClient using an httptest TLS Server, and requests
+// are responded to using the given response byte string.
 func NewTestClientWithResponse(response []byte) *TestClient {
 	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Write(response)
@@ -43,6 +39,8 @@ func NewTestClientWithResponse(response []byte) *TestClient {
 	return tc
 }
 
+// NewTestClientWith404 creates a new TestClient using an httptest TLS Server, and requests
+// are responded to with a 404 response code.
 func NewTestClientWith404() *TestClient {
 	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "sample 404 error", http.StatusNotFound)
@@ -53,6 +51,8 @@ func NewTestClientWith404() *TestClient {
 	return tc
 }
 
+// NewTestClientWith502 creates a new TestClient using an httptest TLS Server, and requests
+// are responded to with a 502 response code.
 func NewTestClientWith502() *TestClient {
 	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "sample 502 error", http.StatusBadGateway)
@@ -61,6 +61,12 @@ func NewTestClientWith502() *TestClient {
 	tc := NewTestClient(h)
 
 	return tc
+}
+
+// Close closes resources associated with the test client and should be called after every
+// instantiation of the client.
+func (tc *TestClient) Close() {
+	tc.teardown()
 }
 
 func testingHTTPClient(handler http.Handler) (*http.Client, func()) {

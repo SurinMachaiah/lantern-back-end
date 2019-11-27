@@ -53,7 +53,7 @@ var testHITP endpointmanager.HealthITProduct = endpointmanager.HealthITProduct{
 	APIURL:                "http://carefluence.com/Carefluence-OpenAPI-Documentation.html",
 }
 
-func Test_makeCHPLProductURLBasic(t *testing.T) {
+func Test_makeCHPLProductURL(t *testing.T) {
 
 	// basic test
 
@@ -80,7 +80,7 @@ func Test_makeCHPLProductURLBasic(t *testing.T) {
 	case *url.Error:
 		// ok
 	default:
-		t.Fatal("Expected context canceled error")
+		t.Fatal("Expected url error")
 	}
 }
 
@@ -360,6 +360,29 @@ func Test_persistProduct(t *testing.T) {
 	prod.CertificationStatus = "Retired"
 	err = persistProduct(ctx, store, &prod)
 	th.Assert(t, err != nil, "expected error updating product")
+
+	// check that error adding to store throws error
+	prod = testCHPLProd
+	prod.Product = "A new product name"
+	addFn := store.(*mock.BasicMockStore).AddHealthITProductFn
+	store.(*mock.BasicMockStore).AddHealthITProductFn = func(_ context.Context, _ *endpointmanager.HealthITProduct) error {
+		return errors.New("add healthitproduct test error")
+	}
+	err = persistProduct(ctx, store, &prod)
+	th.Assert(t, errors.Cause(err).Error() == "add healthitproduct test error", "expected error adding product")
+	store.(*mock.BasicMockStore).AddHealthITProductFn = addFn
+
+	// check that error updating to store throws error
+	prod = testCHPLProd
+	prod.Edition = "2016"
+	updateFn := store.(*mock.BasicMockStore).UpdateHealthITProductFn
+	store.(*mock.BasicMockStore).UpdateHealthITProductFn = func(_ context.Context, _ *endpointmanager.HealthITProduct) error {
+		return errors.New("update healthitproduct test error")
+	}
+	err = persistProduct(ctx, store, &prod)
+	th.Assert(t, errors.Cause(err).Error() == "update healthitproduct test error", "expected error updating product")
+	store.(*mock.BasicMockStore).UpdateHealthITProductFn = updateFn
+
 }
 
 func Test_persistProducts(t *testing.T) {
@@ -463,6 +486,36 @@ func Test_getProductJSON(t *testing.T) {
 	default:
 		t.Fatal("Expected context canceled error")
 	}
+
+	// test http status != 200
+
+	tc = th.NewTestClientWith404()
+	defer tc.Close()
+
+	ctx = context.Background()
+
+	_, err = getProductJSON(ctx, &(tc.Client))
+	th.Assert(t, err.Error() == "CHPL certified products request responded with status: 404 Not Found", "expected response error specifying response code")
+
+	// test error on URL creation
+
+	chplDomainOrig := chplDomain
+	chplDomain = "http://%41:8080/" // invalid domain
+	defer func() { chplDomain = chplDomainOrig }()
+
+	tc, err = basicTestClient()
+	th.Assert(t, err == nil, err)
+	defer tc.Close()
+
+	ctx = context.Background()
+
+	_, err = getProductJSON(ctx, &(tc.Client))
+	switch errors.Cause(err).(type) {
+	case *url.Error:
+		// ok
+	default:
+		t.Fatal("Expected url error")
+	}
 }
 
 func Test_GetCHPLProducts(t *testing.T) {
@@ -507,6 +560,27 @@ func Test_GetCHPLProducts(t *testing.T) {
 		th.Assert(t, reqErr.Err == context.Canceled, "Expected error stating that context was canceled")
 	default:
 		t.Fatal("Expected context canceled error")
+	}
+
+	// test with malformed json
+
+	malformedJSON := `
+		"asdf": [
+		{}]}
+		`
+	tc = th.NewTestClientWithResponse([]byte(malformedJSON))
+	defer tc.Close()
+
+	ctx = context.Background()
+
+	store = mock.NewBasicMockHealthITProductStore()
+
+	err = GetCHPLProducts(ctx, store, &(tc.Client))
+	switch errors.Cause(err).(type) {
+	case *json.SyntaxError:
+		// ok
+	default:
+		t.Fatal("Expected JSON syntax error")
 	}
 
 }
