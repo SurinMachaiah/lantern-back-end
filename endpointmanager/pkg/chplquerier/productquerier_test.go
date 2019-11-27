@@ -21,13 +21,6 @@ import (
 	"github.com/spf13/viper"
 )
 
-const testdata = "github.com/onc-healthit/lantern-back-end/endpointmanager/test/testdata/"
-
-type mockStore struct {
-	data []*endpointmanager.HealthITProduct
-	mock.Store
-}
-
 var testCHPLProd chplCertifiedProduct = chplCertifiedProduct{
 	ID:                  7849,
 	ChplProductNumber:   "15.04.04.2657.Care.01.00.0.160701",
@@ -208,7 +201,7 @@ func Test_getAPIURL(t *testing.T) {
 
 	apiDocString = "170.315 (g)(7),http://carefluence.com/Carefluence-OpenAPI-Documentation.html"
 
-	actualURL, err = getAPIURL(apiDocString)
+	_, err = getAPIURL(apiDocString)
 	th.Assert(t, err != nil, "Expected error due to malformed api doc string")
 
 	// provide empty string

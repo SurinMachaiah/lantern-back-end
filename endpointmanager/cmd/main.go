@@ -3,10 +3,10 @@ package main
 import (
 	"context"
 	"fmt"
+	"net/http"
 
 	"github.com/onc-healthit/lantern-back-end/endpointmanager/pkg/chplquerier"
 	"github.com/onc-healthit/lantern-back-end/endpointmanager/pkg/endpointmanager/postgresql"
-	"github.com/onc-healthit/lantern-back-end/endpointmanager/pkg/httpclient"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/spf13/viper"
@@ -74,7 +74,7 @@ func main() {
 	fmt.Println("Successfully connected!")
 
 	ctx := context.Background()
-	client := httpclient.NewClient()
+	client := &http.Client{}
 	err = chplquerier.GetCHPLProducts(ctx, store, client)
 	if err != nil {
 		panic(err)

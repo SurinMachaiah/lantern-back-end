@@ -31,7 +31,7 @@ func NewTestClient(handler http.Handler) *TestClient {
 // are responded to using the given response byte string.
 func NewTestClientWithResponse(response []byte) *TestClient {
 	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Write(response)
+		_, _ = w.Write(response)
 	})
 
 	tc := NewTestClient(h)
