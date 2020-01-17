@@ -42,4 +42,14 @@ func main() {
 
 	dbErr := endptQuerier.AddEndpointData(ctx, store, &listOfEndpoints)
 	failOnError("Saving in fhir_endpoints database error: ", dbErr)
+
+	/**
+	@TODO: Figure out where to put this
+	STEP 1: Get the endpoint information, I think from the database
+		- The capability statement from the queue is not currently being handled yet but I need it
+		- So i'm working on the assumption that the capability statement information is already in the db
+		  but part of this task is definitely figure out how to get the capability statement into the db
+		  (apparently the parsing is in fhirparser)
+
+	*/
 }

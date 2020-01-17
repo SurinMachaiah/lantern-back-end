@@ -1,6 +1,7 @@
 package endpointmanager
 
 // CapabilityStatement represents a FHIR capability statement (or conformance statement if FHIR DSTU2 and below)
+// @TODO Figure out wtf happened to this
 type CapabilityStatement struct {
 }
 

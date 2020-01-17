@@ -8,6 +8,7 @@ import (
 
 // ParseCapabilityStatement parses the Capability Statement in the body of the provided http response into a CapabilityStatement struct
 // TODO: Make this function return appropriate version (DSTU2, DSTU3...)
+// @TODO: Here's the parser that Matt was referring to which will need to be used?
 func ParseCapabilityStatement(resp *http.Response) (DSTU2CapabilityStatement, error) {
 	var capabilityStatement DSTU2CapabilityStatement
 
