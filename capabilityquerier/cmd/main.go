@@ -42,7 +42,7 @@ func queryEndpoints(ctx context.Context,
 
 	for i, endpointEntry := range listOfEndpoints.Entries {
 		if i%10 == 0 {
-			log.Infof("Processed %d/%d messages", i, len(listOfEndpoints.Entries))
+			log.Infof("!!!Processed %d/%d messages!!!", i, len(listOfEndpoints.Entries))
 		}
 		var urlString = endpointEntry.FHIRPatientFacingURI
 		// Specifically query the FHIR endpoint metadata

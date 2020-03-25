@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
 )
 
 // OrgKeyword is a struct for each keyword
@@ -57,6 +58,7 @@ type Endpoints interface {
 
 // GetEndpointsFromFilepath parses a list of endpoints out of the file at the provided path
 func GetEndpointsFromFilepath(filePath string, source string) (ListOfEndpoints, error) {
+	log.Infof("%s: %s", filePath, source)
 	jsonFile, err := os.Open(filePath)
 	// If we os.Open returns an error then handle it
 	if err != nil {
