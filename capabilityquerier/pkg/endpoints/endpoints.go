@@ -9,7 +9,7 @@ import (
 
 // GetEndpoints gets the endpoints from a resource file.
 // TODO: this is temporary!!! These endpoints will be retrieved from a queue eventually.
-func GetEndpoints(endpointsFile string) (*fetcher.ListOfEndpoints, error) {
+func GetEndpoints(endpointsFile string, source string) (*fetcher.ListOfEndpoints, error) {
 	if len(endpointsFile) == 0 {
 		if len(os.Args) != 1 {
 			endpointsFile = os.Args[1]
@@ -17,7 +17,7 @@ func GetEndpoints(endpointsFile string) (*fetcher.ListOfEndpoints, error) {
 			return nil, errors.New("no endpoints file given")
 		}
 	}
-	var listOfEndpoints, err = fetcher.GetEndpointsFromFilepath(endpointsFile, "CareEvolution")
+	var listOfEndpoints, err = fetcher.GetEndpointsFromFilepath(endpointsFile, source)
 	if err != nil {
 		return nil, err
 	}

@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"net/url"
+	"os"
 	"path"
 	"runtime"
 	"time"
@@ -77,15 +78,30 @@ func queryEndpoints(ctx context.Context,
 }
 
 func main() {
+	var endpointsFile string
+	var source string
+
 	err := config.SetupConfig()
 	failOnError(err)
 
-	queryInterval := viper.GetInt("capquery_qryintvl")
+	if len(os.Args) == 3 {
+		endpointsFile = os.Args[1]
+		source = os.Args[2]
+	} else if len(os.Args) == 2 {
+		log.Fatalf("ERROR: Missing endpoints list source command-line argument")
+	} else if len(os.Args) == 1 {
+		// TODO: continuing to use the list of endpoints and 'fetcher'. however, eventually we'll
+		// be taking messages off of a queue and this code will be removed.
+		endpointsFile = viper.GetString("endptlist")
+		source = "CareEvolution"
+	} else {
+		log.Fatalf("ERROR: Missing endpoints list command-line argument")
+	}
 
-	// TODO: continuing to use the list of endpoints and 'fetcher'. however, eventually we'll
-	// be taking messages off of a queue and this code will be removed.
-	listOfEndpoints, err := endpoints.GetEndpoints(viper.GetString("endptlist"))
+	listOfEndpoints, err := endpoints.GetEndpoints(endpointsFile, source)
 	failOnError(err)
+
+	queryInterval := viper.GetInt("capquery_qryintvl")
 
 	// Set up the queue for sending messages
 	qUser := viper.GetString("quser")
