@@ -1,0 +1,1 @@
+SELECT audit.audit_table('fhir_endpoints')
