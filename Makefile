@@ -36,6 +36,13 @@ populatedb:
 csv_export:
 	cd endpointmanager/cmd/endpointexporter; go run main.go; docker cp lantern-back-end_pg_prometheus_1:/tmp/export.csv ../../../lantern_export_`date +%F`.csv
 
+lint:
+	cd ./capabilityquerier; golangci-lint run -E gofmt
+	cd ./networkstatsquerier; golangci-lint run -E gofmt
+	cd ./lanternmq; golangci-lint run -E gofmt
+	cd ./fhir; golangci-lint run -E gofmt
+	cd ./endpointmanager; golangci-lint run -E gofmt
+
 test:
 	cd ./capabilityquerier; go test -covermode=atomic -race -count=1 -p 1 ./...
 	cd ./networkstatsquerier; go test -covermode=atomic -race -count=1 -p 1 ./...
