@@ -11,7 +11,6 @@ import (
 
 	"github.com/onc-healthit/lantern-back-end/capabilityquerier/pkg/capabilityquerier"
 	"github.com/onc-healthit/lantern-back-end/capabilityquerier/pkg/config"
-	"github.com/onc-healthit/lantern-back-end/capabilityquerier/pkg/endpoints"
 	"github.com/onc-healthit/lantern-back-end/capabilityquerier/pkg/queue"
 	"github.com/onc-healthit/lantern-back-end/lanternmq"
 	"github.com/onc-healthit/lantern-back-end/networkstatsquerier/fetcher"
@@ -81,20 +80,23 @@ func main() {
 	err := config.SetupConfig()
 	failOnError(err)
 	var endpointsFile string
+	var source string
 
 	queryInterval := viper.GetInt("capquery_qryintvl")
 
-	if len(os.Args) == 2 {
+	if len(os.Args) == 3 {
 		endpointsFile = os.Args[1]
+		source = os.Args[2]
 	} else if len(os.Args) == 1 {
 		endpointsFile = viper.GetString("endptlist")
+		source = "CareEvolution"
 	} else {
 		log.Fatalf("ERROR: bad arguments")
 	}
 
 	// TODO: continuing to use the list of endpoints and 'fetcher'. however, eventually we'll
 	// be taking messages off of a queue and this code will be removed.
-	listOfEndpoints, err := endpoints.GetEndpoints(endpointsFile)
+	listOfEndpoints, err := fetcher.GetEndpointsFromFilepath(endpointsFile, source)
 	failOnError(err)
 
 	// Set up the queue for sending messages
@@ -126,7 +128,7 @@ func main() {
 	for {
 		ctx := context.Background()
 
-		queryEndpoints(ctx, listOfEndpoints, qw, numWorkers, 30*time.Second, &mq, &ch, qName, client, errs)
+		queryEndpoints(ctx, &listOfEndpoints, qw, numWorkers, 30*time.Second, &mq, &ch, qName, client, errs)
 
 		log.Infof("Waiting %d minutes", queryInterval)
 		time.Sleep(time.Duration(queryInterval) * time.Minute)
