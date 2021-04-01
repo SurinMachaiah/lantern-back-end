@@ -41,6 +41,16 @@ func SetupConfig() error {
 		return err
 	}
 
+	// Version Response Queue Setup
+	err = viper.BindEnv("versionsquery_qname")
+	if err != nil {
+		return err
+	}
+	err = viper.BindEnv("versionsquery_response_qname")
+	if err != nil {
+		return err
+	}
+
 	// Database setup
 
 	err = viper.BindEnv("dbhost")
@@ -96,6 +106,8 @@ func SetupConfig() error {
 	viper.SetDefault("capquery_qname", "capability-statements")
 	viper.SetDefault("capquery_numworkers", 10)
 	viper.SetDefault("endptinfo_capquery_qname", "endpoints-to-capability")
+	viper.SetDefault("versionsquery_qname", "version-responses")
+	viper.SetDefault("versionsquery_response_qname", "endpoints-to-version-responses")
 
 	viper.SetDefault("dbhost", "localhost")
 	viper.SetDefault("dbport", 5432)
