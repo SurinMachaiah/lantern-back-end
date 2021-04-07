@@ -48,8 +48,8 @@ func (s *Store) GetFHIREndpointInfo(ctx context.Context, id int) (*endpointmanag
 		included_fields,
 		supported_resources,
 		metadata_id,
-		requested_version,
-		capability_version
+		requested__fhir_version,
+		capability_fhir_version
 	FROM fhir_endpoints_info WHERE id=$1`
 	row := s.DB.QueryRowContext(ctx, sqlStatementInfo, id)
 
@@ -150,8 +150,8 @@ func (s *Store) GetFHIREndpointInfoUsingURL(ctx context.Context, url string) (*e
 		included_fields,
 		supported_resources,
 		metadata_id,
-		requested_version,
-		capability_version
+		requested_fhir_version,
+		capability_fhir_version
 	FROM fhir_endpoints_info WHERE fhir_endpoints_info.url = $1`
 
 	row := s.DB.QueryRowContext(ctx, sqlStatementInfo, url)
@@ -400,8 +400,8 @@ func prepareFHIREndpointInfoStatements(s *Store) error {
 			included_fields,
 			supported_resources,
 			metadata_id,
-			requested_version,
-			capability_version)
+			requested_fhir_version,
+			capability_fhir_version)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
 		RETURNING id`)
 	if err != nil {
@@ -421,8 +421,8 @@ func prepareFHIREndpointInfoStatements(s *Store) error {
 			included_fields = $9,
 			supported_resources = $10,
 			metadata_id = $11,
-			requested_version = $12,
-			capability_version = $13		
+			requested_fhir_version = $12,
+			capability_fhir_version = $13		
 		WHERE id = $12`)
 	if err != nil {
 		return err
