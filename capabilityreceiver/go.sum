@@ -240,6 +240,7 @@ github.com/nbutton23/zxcvbn-go v0.0.0-20180912185939-ae427f1e4c1d/go.mod h1:o96d
 github.com/oklog/ulid v1.3.1/go.mod h1:CirwcVhetQ6Lv90oh/F+FBtV6XMibvdAFo93nm5qn4U=
 github.com/onc-healthit/lantern-back-end v0.0.0-20200319114800-a2d86dc950c6 h1:+wJAkmqrYYmQ5tH7o9ssLXq4UMwEeDZEdv/hQwABaoE=
 github.com/onc-healthit/lantern-back-end v0.0.0-20200319114800-a2d86dc950c6/go.mod h1:D1+Dbr7oRkqfpFVytc9HB9DcaqbVhG63FMi0WxLakUE=
+github.com/onc-healthit/lantern-back-end v1.3.1 h1:ikrM2x3HbMuza/NwO+1aw+N9VsPWrtI1F5HDOZWlteA=
 github.com/onc-healthit/lantern-back-end/capabilityquerier v0.0.0-20200325112617-d9df26e6fd2b/go.mod h1:coNhm1eDaFhpn7ludPQYFlLFntXTyIb+7VPO5Wb2fBc=
 github.com/onc-healthit/lantern-back-end/endpointmanager v0.0.0-20200319151735-49dd5d7c3af0/go.mod h1:IYetlCA7Jkwo2HjEJkzRiwN4hVUB+5p3Kss5z40DQPQ=
 github.com/onc-healthit/lantern-back-end/endpointmanager v0.0.0-20200413101328-40c884330475/go.mod h1:T69VgfMPvmUJ6YhQxbqCAcdzZ25V5i3QMCp7BHrldUw=
@@ -356,6 +357,7 @@ github.com/onc-healthit/lantern-back-end/endpointmanager v0.0.0-20210302213800-7
 github.com/onc-healthit/lantern-back-end/endpointmanager v0.0.0-20210302213800-7f50132755d8/go.mod h1:4XFco2Dd893RPREYDoNOeljDTGjy0ueM73QqXTwuPII=
 github.com/onc-healthit/lantern-back-end/endpointmanager v0.0.0-20210309192630-96b83022b759 h1:ApxJCJ1SDLvce6Y0XuT/XDnJIvbmsXnslemiXwhKBKk=
 github.com/onc-healthit/lantern-back-end/endpointmanager v0.0.0-20210309192630-96b83022b759/go.mod h1:vB2d8suBYJ0uvXBFHjNcGSwWzkSbhBM5jJXepyMaXzg=
+github.com/onc-healthit/lantern-back-end/endpointmanager v0.0.0-20210325125748-e07becdde8ac h1:Fbv5lwrSrWe+Nh65ITqACJx2cdwW8w4S+BuIRac5IfA=
 github.com/onc-healthit/lantern-back-end/endpointmanager v0.0.0-20210330205202-77d177470c30 h1:ZqGmc/zrhJOEHuBm4T/wSU+4qupsXMrIStweD4+GGQ8=
 github.com/onc-healthit/lantern-back-end/endpointmanager v0.0.0-20210330205202-77d177470c30/go.mod h1:LC4MjbgBcYHmKuSKr6z1HWSETNDwjg37avXpGwXmXO0=
 github.com/onc-healthit/lantern-back-end/endpointmanager v0.0.0-20210401162603-095a3fb3e57f h1:BbHQhHDvdiVVWrWSP31RshyyHFQxvOfwuhF5WbhG2Xk=

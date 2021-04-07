@@ -44,6 +44,14 @@ func formatMessage(message []byte) (*endpointmanager.FHIREndpointInfo, error) {
 		return nil, fmt.Errorf("%s: unable to cast TLS Version to string", url)
 	}
 
+	requestedVersion := msgJSON["requestedVersion"]
+	if requestedVersion != nil {
+		requestedVersion = msgJSON["requestedVersion"].(string)
+		if !ok {
+			return nil, fmt.Errorf("%s: unable to cast Requested Version to string", url)
+		}
+	}
+
 	// TODO: for some reason casting to []string doesn't work... need to do roundabout way
 	// Could be investigated further
 	var mimeTypes []string
@@ -130,6 +138,8 @@ func formatMessage(message []byte) (*endpointmanager.FHIREndpointInfo, error) {
 		IncludedFields:      includedFields,
 		SupportedResources:  supportedResources,
 		Metadata:            FHIREndpointMetadata,
+		RequestedVersion:    requestedVersion,
+		CapabilityVersion:   fhirVersion,
 	}
 
 	return &fhirEndpoint, nil

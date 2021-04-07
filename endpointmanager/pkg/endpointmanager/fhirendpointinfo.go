@@ -28,6 +28,8 @@ type FHIREndpointInfo struct {
 	IncludedFields      []IncludedField
 	SupportedResources  []string
 	Metadata            *FHIREndpointMetadata
+	RequestedVersion    string
+	CapabilityVersion   string
 }
 
 // EqualExcludeMetadata checks each field of the two FHIREndpointInfos except for metadata fields to see if they are equal.

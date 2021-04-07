@@ -53,6 +53,7 @@ type Message struct {
 	SMARTHTTPResponse   int         `json:"smarthttpResponse"`
 	SMARTResp           interface{} `json:"smartResp"`
 	ResponseTime        float64     `json:"responseTime"`
+	RequestedVersion    string      `json:"requestedVersion"`
 }
 type VersionsMessage struct {
 	URL              string      `json:"url"`
