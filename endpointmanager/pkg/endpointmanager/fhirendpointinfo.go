@@ -14,22 +14,22 @@ import (
 // Information about the FHIR API endpoint is populated by the FHIR
 // capability statement found at that endpoint.
 type FHIREndpointInfo struct {
-	ID                  int
-	HealthITProductID   int
-	URL                 string
-	TLSVersion          string
-	MIMETypes           []string
-	VendorID            int
-	CapabilityStatement capabilityparser.CapabilityStatement // the JSON representation of the FHIR capability statement
-	Validation          Validation
-	CreatedAt           time.Time
-	UpdatedAt           time.Time
-	SMARTResponse       smartparser.SMARTResponse
-	IncludedFields      []IncludedField
-	SupportedResources  []string
-	Metadata            *FHIREndpointMetadata
-	RequestedVersion    string
-	CapabilityVersion   string
+	ID                    int
+	HealthITProductID     int
+	URL                   string
+	TLSVersion            string
+	MIMETypes             []string
+	VendorID              int
+	CapabilityStatement   capabilityparser.CapabilityStatement // the JSON representation of the FHIR capability statement
+	Validation            Validation
+	CreatedAt             time.Time
+	UpdatedAt             time.Time
+	SMARTResponse         smartparser.SMARTResponse
+	IncludedFields        []IncludedField
+	SupportedResources    []string
+	Metadata              *FHIREndpointMetadata
+	RequestedFhirVersion  string
+	CapabilityFhirVersion string
 }
 
 // EqualExcludeMetadata checks each field of the two FHIREndpointInfos except for metadata fields to see if they are equal.

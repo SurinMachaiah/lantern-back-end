@@ -44,16 +44,16 @@ var tlsNone = "No TLS"
 // the FHIR API, any errors from making the FHIR API request, the MIME type, the TLS version, and the capability
 // statement itself.
 type Message struct {
-	URL                 string      `json:"url"`
-	Err                 string      `json:"err"`
-	MIMETypes           []string    `json:"mimeTypes"`
-	TLSVersion          string      `json:"tlsVersion"`
-	HTTPResponse        int         `json:"httpResponse"`
-	CapabilityStatement interface{} `json:"capabilityStatement"`
-	SMARTHTTPResponse   int         `json:"smarthttpResponse"`
-	SMARTResp           interface{} `json:"smartResp"`
-	ResponseTime        float64     `json:"responseTime"`
-	RequestedVersion    string      `json:"requestedVersion"`
+	URL                  string      `json:"url"`
+	Err                  string      `json:"err"`
+	MIMETypes            []string    `json:"mimeTypes"`
+	TLSVersion           string      `json:"tlsVersion"`
+	HTTPResponse         int         `json:"httpResponse"`
+	CapabilityStatement  interface{} `json:"capabilityStatement"`
+	SMARTHTTPResponse    int         `json:"smarthttpResponse"`
+	SMARTResp            interface{} `json:"smartResp"`
+	ResponseTime         float64     `json:"responseTime"`
+	RequestedFhirVersion string      `json:"requestedFhirVersion"`
 }
 type VersionsMessage struct {
 	URL              string      `json:"url"`

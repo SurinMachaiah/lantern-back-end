@@ -29,8 +29,8 @@ func (s *Store) GetFHIREndpointInfo(ctx context.Context, id int) (*endpointmanag
 	var vendorIDNullable sql.NullInt64
 	var smartResponseJSON []byte
 	var metadataID int
-	var requestedVersion sql.NullString
-	var capabilityVersion sql.NullString
+	var requestedFhirVersion sql.NullString
+	var capabilityFhirVersion sql.NullString
 
 	sqlStatementInfo := `
 	SELECT
@@ -68,22 +68,22 @@ func (s *Store) GetFHIREndpointInfo(ctx context.Context, id int) (*endpointmanag
 		&includedFieldsJSON,
 		pq.Array(&endpointInfo.SupportedResources),
 		&metadataID,
-		&requestedVersion,
-		&capabilityVersion)
+		&requestedFhirVersion,
+		&capabilityFhirVersion)
 	if err != nil {
 		return nil, err
 	}
 
-	if !requestedVersion.Valid {
-		endpointInfo.RequestedVersion = ""
+	if !requestedFhirVersion.Valid {
+		endpointInfo.RequestedFhirVersion = ""
 	} else {
-		endpointInfo.RequestedVersion = requestedVersion.String
+		endpointInfo.RequestedFhirVersion = requestedFhirVersion.String
 	}
 
-	if !capabilityVersion.Valid {
-		endpointInfo.CapabilityVersion = ""
+	if !capabilityFhirVersion.Valid {
+		endpointInfo.CapabilityFhirVersion = ""
 	} else {
-		endpointInfo.CapabilityVersion = capabilityVersion.String
+		endpointInfo.CapabilityFhirVersion = capabilityFhirVersion.String
 	}
 
 	if capabilityStatementJSON != nil {
@@ -131,8 +131,8 @@ func (s *Store) GetFHIREndpointInfoUsingURL(ctx context.Context, url string) (*e
 	var vendorIDNullable sql.NullInt64
 	var smartResponseJSON []byte
 	var metadataID int
-	var requestedVersion sql.NullString
-	var capabilityVersion sql.NullString
+	var requestedFhirVersion sql.NullString
+	var capabilityFhirVersion sql.NullString
 
 	sqlStatementInfo := `
 	SELECT
@@ -171,22 +171,22 @@ func (s *Store) GetFHIREndpointInfoUsingURL(ctx context.Context, url string) (*e
 		&includedFieldsJSON,
 		pq.Array(&endpointInfo.SupportedResources),
 		&metadataID,
-		&requestedVersion,
-		&capabilityVersion)
+		&requestedFhirVersion,
+		&capabilityFhirVersion)
 	if err != nil {
 		return nil, err
 	}
 
-	if !requestedVersion.Valid {
-		endpointInfo.RequestedVersion = ""
+	if !requestedFhirVersion.Valid {
+		endpointInfo.RequestedFhirVersion = ""
 	} else {
-		endpointInfo.RequestedVersion = requestedVersion.String
+		endpointInfo.RequestedFhirVersion = requestedFhirVersion.String
 	}
 
-	if !capabilityVersion.Valid {
-		endpointInfo.CapabilityVersion = ""
+	if !capabilityFhirVersion.Valid {
+		endpointInfo.CapabilityFhirVersion = ""
 	} else {
-		endpointInfo.CapabilityVersion = capabilityVersion.String
+		endpointInfo.CapabilityFhirVersion = capabilityFhirVersion.String
 	}
 
 	if capabilityStatementJSON != nil {
@@ -257,18 +257,18 @@ func (s *Store) AddFHIREndpointInfo(ctx context.Context, e *endpointmanager.FHIR
 		smartResponseJSON = []byte("null")
 	}
 
-	var requestedVersion sql.NullString
-	if len(e.RequestedVersion) > 0 {
-		requestedVersion = sql.NullString{String: e.RequestedVersion, Valid: true}
+	var requestedFhirVersion sql.NullString
+	if len(e.RequestedFhirVersion) > 0 {
+		requestedFhirVersion = sql.NullString{String: e.RequestedFhirVersion, Valid: true}
 	} else {
-		requestedVersion = sql.NullString{}
+		requestedFhirVersion = sql.NullString{}
 	}
 
-	var capabilityVersion sql.NullString
-	if len(e.CapabilityVersion) > 0 {
-		capabilityVersion = sql.NullString{String: e.CapabilityVersion, Valid: true}
+	var capabilityFhirVersion sql.NullString
+	if len(e.CapabilityFhirVersion) > 0 {
+		capabilityFhirVersion = sql.NullString{String: e.CapabilityFhirVersion, Valid: true}
 	} else {
-		capabilityVersion = sql.NullString{}
+		capabilityFhirVersion = sql.NullString{}
 	}
 
 	nullableInts := getNullableInts([]int{e.HealthITProductID, e.VendorID})
@@ -285,8 +285,8 @@ func (s *Store) AddFHIREndpointInfo(ctx context.Context, e *endpointmanager.FHIR
 		includedFieldsJSON,
 		pq.Array(e.SupportedResources),
 		metadataID,
-		requestedVersion,
-		capabilityVersion)
+		requestedFhirVersion,
+		capabilityFhirVersion)
 
 	err = row.Scan(&e.ID)
 
@@ -326,18 +326,18 @@ func (s *Store) UpdateFHIREndpointInfo(ctx context.Context, e *endpointmanager.F
 		smartResponseJSON = []byte("null")
 	}
 
-	var requestedVersion sql.NullString
-	if len(e.RequestedVersion) > 0 {
-		requestedVersion = sql.NullString{String: e.RequestedVersion, Valid: true}
+	var requestedFhirVersion sql.NullString
+	if len(e.RequestedFhirVersion) > 0 {
+		requestedFhirVersion = sql.NullString{String: e.RequestedFhirVersion, Valid: true}
 	} else {
-		requestedVersion = sql.NullString{}
+		requestedFhirVersion = sql.NullString{}
 	}
 
-	var capabilityVersion sql.NullString
-	if len(e.CapabilityVersion) > 0 {
-		capabilityVersion = sql.NullString{String: e.CapabilityVersion, Valid: true}
+	var capabilityFhirVersion sql.NullString
+	if len(e.CapabilityFhirVersion) > 0 {
+		capabilityFhirVersion = sql.NullString{String: e.CapabilityFhirVersion, Valid: true}
 	} else {
-		capabilityVersion = sql.NullString{}
+		capabilityFhirVersion = sql.NullString{}
 	}
 
 	nullableInts := getNullableInts([]int{e.HealthITProductID, e.VendorID})
@@ -354,8 +354,8 @@ func (s *Store) UpdateFHIREndpointInfo(ctx context.Context, e *endpointmanager.F
 		includedFieldsJSON,
 		pq.Array(e.SupportedResources),
 		metadataID,
-		requestedVersion,
-		capabilityVersion,
+		requestedFhirVersion,
+		capabilityFhirVersion,
 		e.ID)
 
 	return err
