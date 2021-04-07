@@ -179,8 +179,8 @@ CREATE TABLE fhir_endpoints_info (
     updated_at              TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     smart_response          JSONB,
     metadata_id             INT REFERENCES fhir_endpoints_metadata(id) ON DELETE SET NULL,
-    requested_version       VARCHAR(500),
-    capability_version      VARCHAR(500)
+    requested_fhir_version  VARCHAR(500),
+    capability_fhir_version VARCHAR(500)
 );
 
 CREATE TABLE fhir_endpoints_info_history (
@@ -201,8 +201,8 @@ CREATE TABLE fhir_endpoints_info_history (
     updated_at              TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     smart_response          JSONB, 
     metadata_id             INT REFERENCES fhir_endpoints_metadata(id) ON DELETE SET NULL,
-    requested_version       VARCHAR(500),
-    capability_version      VARCHAR(500)
+    requested_fhir_version  VARCHAR(500),
+    capability_fhir_version VARCHAR(500)
 );
 
 CREATE TABLE endpoint_organization (
