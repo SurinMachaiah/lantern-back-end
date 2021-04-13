@@ -48,7 +48,7 @@ func (s *Store) GetFHIREndpointInfo(ctx context.Context, id int) (*endpointmanag
 		included_fields,
 		supported_resources,
 		metadata_id,
-		requested__fhir_version,
+		requested_fhir_version,
 		capability_fhir_version
 	FROM fhir_endpoints_info WHERE id=$1`
 	row := s.DB.QueryRowContext(ctx, sqlStatementInfo, id)
