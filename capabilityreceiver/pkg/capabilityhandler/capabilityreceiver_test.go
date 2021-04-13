@@ -14,15 +14,16 @@ import (
 )
 
 var testQueueMsg = map[string]interface{}{
-	"url":               "http://example.com/DTSU2/",
-	"err":               "",
-	"mimeTypes":         []string{"application/json+fhir"},
-	"httpResponse":      200,
-	"tlsVersion":        "TLS 1.2",
-	"smarthttpResponse": 0,
-	"smartResp":         nil,
-	"responseTime":      0.1234,
-	"availability":      1.0,
+	"url":                  "http://example.com/DTSU2/",
+	"err":                  "",
+	"mimeTypes":            []string{"application/json+fhir"},
+	"httpResponse":         200,
+	"tlsVersion":           "TLS 1.2",
+	"smarthttpResponse":    0,
+	"smartResp":            nil,
+	"responseTime":         0.1234,
+	"availability":         1.0,
+	"requestedFhirVersion": "",
 }
 
 var testValidationObj = endpointmanager.Validation{
