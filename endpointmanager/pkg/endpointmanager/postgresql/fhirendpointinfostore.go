@@ -423,7 +423,7 @@ func prepareFHIREndpointInfoStatements(s *Store) error {
 			metadata_id = $11,
 			requested_fhir_version = $12,
 			capability_fhir_version = $13		
-		WHERE id = $12`)
+		WHERE id = $14`)
 	if err != nil {
 		return err
 	}
