@@ -65,18 +65,22 @@ func Test_PersistFHIREndpointInfo(t *testing.T) {
 
 	// endpointInfos
 	var endpointInfo1 = &endpointmanager.FHIREndpointInfo{
-		URL:                 endpoint1.URL,
-		VendorID:            cerner.ID,
-		TLSVersion:          "TLS 1.1",
-		MIMETypes:           []string{"application/json+fhir"},
-		CapabilityStatement: cs,
-		SMARTResponse:       nil,
-		Metadata:            endpointMetadata1}
+		URL:                   endpoint1.URL,
+		VendorID:              cerner.ID,
+		TLSVersion:            "TLS 1.1",
+		MIMETypes:             []string{"application/json+fhir"},
+		CapabilityStatement:   cs,
+		SMARTResponse:         nil,
+		RequestedFhirVersion:  "",
+		CapabilityFhirVersion: "1.0.2",
+		Metadata:              endpointMetadata1}
 	var endpointInfo2 = &endpointmanager.FHIREndpointInfo{
-		URL:        endpoint2.URL,
-		TLSVersion: "TLS 1.2",
-		MIMETypes:  []string{"application/fhir+json"},
-		Metadata:   endpointMetadata2}
+		URL:                   endpoint2.URL,
+		TLSVersion:            "TLS 1.2",
+		RequestedFhirVersion:  "",
+		CapabilityFhirVersion: "",
+		MIMETypes:             []string{"application/fhir+json"},
+		Metadata:              endpointMetadata2}
 
 	// add endpointInfos and Metadata
 	metadataID, err := store.AddFHIREndpointMetadata(ctx, endpointInfo1.Metadata)
@@ -96,6 +100,8 @@ func Test_PersistFHIREndpointInfo(t *testing.T) {
 	if err != nil {
 		t.Errorf("Error adding fhir endpointInfo: %+v", err)
 	}
+
+	endpointInfo1.RequestedFhirVersion = ""
 
 	// retrieve endpointInfos
 

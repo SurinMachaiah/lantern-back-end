@@ -376,13 +376,15 @@ var testFhirEndpointMetadata = endpointmanager.FHIREndpointMetadata{
 }
 
 var testFhirEndpointInfo = endpointmanager.FHIREndpointInfo{
-	URL:                "http://example.com/DTSU2/",
-	MIMETypes:          []string{"application/json+fhir"},
-	TLSVersion:         "TLS 1.2",
-	SMARTResponse:      nil,
-	Validation:         testValidationObj,
-	IncludedFields:     testIncludedFields,
-	SupportedResources: testSupportedResources,
+	URL:                   "http://example.com/DTSU2/",
+	MIMETypes:             []string{"application/json+fhir"},
+	TLSVersion:            "TLS 1.2",
+	RequestedFhirVersion:  "",
+	CapabilityFhirVersion: "1.0.2",
+	SMARTResponse:         nil,
+	Validation:            testValidationObj,
+	IncludedFields:        testIncludedFields,
+	SupportedResources:    testSupportedResources,
 }
 
 // Convert the test Queue Message into []byte format for testing purposes

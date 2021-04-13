@@ -224,10 +224,12 @@ func Test_FHIREndpointInfoEqual(t *testing.T) {
 				},
 			},
 		},
-		IncludedFields:      testIncludedFields,
-		SupportedResources:  []string{"AllergyIntolerance", "Binary", "CarePlan"},
-		CapabilityStatement: cs,
-		Metadata:            endpointMetadata1}
+		IncludedFields:        testIncludedFields,
+		SupportedResources:    []string{"AllergyIntolerance", "Binary", "CarePlan"},
+		CapabilityStatement:   cs,
+		RequestedFhirVersion:  "",
+		CapabilityFhirVersion: "1.0.2",
+		Metadata:              endpointMetadata1}
 	includedFieldsCopy := make([]IncludedField, len(testIncludedFields))
 	copy(includedFieldsCopy, testIncludedFields)
 	var endpointInfo2 = &FHIREndpointInfo{
@@ -250,10 +252,12 @@ func Test_FHIREndpointInfoEqual(t *testing.T) {
 				},
 			},
 		},
-		IncludedFields:      includedFieldsCopy,
-		SupportedResources:  []string{"AllergyIntolerance", "Binary", "CarePlan"},
-		CapabilityStatement: cs,
-		Metadata:            endpointMetadata2}
+		IncludedFields:        includedFieldsCopy,
+		SupportedResources:    []string{"AllergyIntolerance", "Binary", "CarePlan"},
+		CapabilityStatement:   cs,
+		RequestedFhirVersion:  "",
+		CapabilityFhirVersion: "1.0.2",
+		Metadata:              endpointMetadata2}
 
 	if !endpointInfo1.Equal(endpointInfo2) {
 		t.Errorf("Expected endpointInfo1 to equal endpointInfo2. They are not equal.")
