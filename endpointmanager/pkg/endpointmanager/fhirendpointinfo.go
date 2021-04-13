@@ -60,6 +60,14 @@ func (e *FHIREndpointInfo) EqualExcludeMetadata(e2 *FHIREndpointInfo) bool {
 	if e.VendorID != e2.VendorID {
 		return false
 	}
+
+	if e.RequestedFhirVersion != e2.RequestedFhirVersion {
+		return false
+	}
+
+	if e.CapabilityFhirVersion != e2.CapabilityFhirVersion {
+		return false
+	}
 	// because CapabilityStatement is an interface, we need to confirm it's not nil before using the Equal
 	// method.
 	if e.CapabilityStatement != nil && !e.CapabilityStatement.Equal(e2.CapabilityStatement) {
