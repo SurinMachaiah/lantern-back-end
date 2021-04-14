@@ -103,21 +103,23 @@ func removeOldEndpoints(ctx context.Context, store *postgresql.Store, updateTime
 			log.Warn(err)
 			continue
 		}
-		existingEndpoint, err := store.GetFHIREndpointInfoUsingURL(ctx, endpoint.URL)
+		existingEndpointList, err := store.GetFHIREndpointInfosUsingURL(ctx, endpoint.URL)
 		if err == sql.ErrNoRows {
 			log.Warn(err)
 			continue
 		} else {
-			endpointList, err := store.GetFHIREndpointUsingURL(ctx, endpoint.URL)
-			if err != nil {
-				log.Warn(err)
-				continue
-			}
-			if len(endpointList) == 0 {
-				err = store.DeleteFHIREndpointInfo(ctx, existingEndpoint)
+			for _, existingEndpoint := range existingEndpointList {
+				endpointList, err := store.GetFHIREndpointUsingURL(ctx, endpoint.URL)
 				if err != nil {
 					log.Warn(err)
 					continue
+				}
+				if len(endpointList) == 0 {
+					err = store.DeleteFHIREndpointInfo(ctx, existingEndpoint)
+					if err != nil {
+						log.Warn(err)
+						continue
+					}
 				}
 			}
 		}
