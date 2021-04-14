@@ -71,14 +71,14 @@ func Test_PersistFHIREndpointInfo(t *testing.T) {
 		MIMETypes:             []string{"application/json+fhir"},
 		CapabilityStatement:   cs,
 		SMARTResponse:         nil,
-		RequestedFhirVersion:  "",
+		RequestedFhirVersion:  "null",
 		CapabilityFhirVersion: "1.0.2",
 		Metadata:              endpointMetadata1}
 	var endpointInfo2 = &endpointmanager.FHIREndpointInfo{
 		URL:                   endpoint2.URL,
 		TLSVersion:            "TLS 1.2",
-		RequestedFhirVersion:  "",
-		CapabilityFhirVersion: "",
+		RequestedFhirVersion:  "null",
+		CapabilityFhirVersion: "null",
 		MIMETypes:             []string{"application/fhir+json"},
 		Metadata:              endpointMetadata2}
 
@@ -101,7 +101,7 @@ func Test_PersistFHIREndpointInfo(t *testing.T) {
 		t.Errorf("Error adding fhir endpointInfo: %+v", err)
 	}
 
-	endpointInfo1.RequestedFhirVersion = ""
+	endpointInfo1.RequestedFhirVersion = "null
 
 	// retrieve endpointInfos
 

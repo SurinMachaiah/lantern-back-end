@@ -23,7 +23,7 @@ var testQueueMsg = map[string]interface{}{
 	"smartResp":            nil,
 	"responseTime":         0.1234,
 	"availability":         1.0,
-	"requestedFhirVersion": "",
+	"requestedFhirVersion": "null",
 }
 
 var testValidationObj = endpointmanager.Validation{
@@ -379,7 +379,7 @@ var testFhirEndpointInfo = endpointmanager.FHIREndpointInfo{
 	URL:                   "http://example.com/DTSU2/",
 	MIMETypes:             []string{"application/json+fhir"},
 	TLSVersion:            "TLS 1.2",
-	RequestedFhirVersion:  "",
+	RequestedFhirVersion:  "null",
 	CapabilityFhirVersion: "1.0.2",
 	SMARTResponse:         nil,
 	Validation:            testValidationObj,
