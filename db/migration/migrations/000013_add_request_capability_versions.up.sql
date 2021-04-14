@@ -18,10 +18,11 @@ CREATE OR REPLACE FUNCTION populate_capability_fhir_version_info() RETURNS VOID 
     DECLARE
         t_curs cursor for select capability_statement from fhir_endpoints_info;
         t_row fhir_endpoints_info%ROWTYPE;
-        j INTEGER;
+        capStatVersion VARCHAR(500);
     BEGIN
         FOR t_row in t_curs LOOP
-            UPDATE fhir_endpoints_info SET requested_fhir_version = NULL, capability_fhir_version = t_row.capability_statement->>'fhirVersion' WHERE current of t_curs; 
+            SELECT cast(coalesce(nullif(t_row.capability_statement->>'fhirVersion',NULL),'') as varchar(500)) INTO capStatVersion;
+            UPDATE fhir_endpoints_info SET requested_fhir_version = '', capability_fhir_version = capStatVersion WHERE current of t_curs; 
         END LOOP;
     END;
 $$ LANGUAGE plpgsql;
@@ -32,10 +33,11 @@ CREATE OR REPLACE FUNCTION populate_capability_fhir_version_info_history() RETUR
     DECLARE
         t_curs cursor for select capability_statement from fhir_endpoints_info_history;
         t_row fhir_endpoints_info%ROWTYPE;
-        j INTEGER;
+        capStatVersion VARCHAR(500);
     BEGIN
         FOR t_row in t_curs LOOP
-            UPDATE fhir_endpoints_info_history SET requested_fhir_version = NULL, capability_fhir_version = t_row.capability_statement->>'fhirVersion' WHERE current of t_curs; 
+            SELECT cast(coalesce(nullif(t_row.capability_statement->>'fhirVersion',NULL),'') as varchar(500)) INTO capStatVersion;
+            UPDATE fhir_endpoints_info_history SET requested_fhir_version = '', capability_fhir_version = capStatVersion WHERE current of t_curs; 
         END LOOP;
     END;
 $$ LANGUAGE plpgsql;
