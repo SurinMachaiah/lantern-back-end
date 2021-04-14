@@ -114,7 +114,7 @@ func Test_PersistFHIREndpointMetadata(t *testing.T) {
 
 	// retrieve endpointInfos
 
-	e1, err := store.GetFHIREndpointInfoUsingURL(ctx, endpointInfo1.URL)
+	e1, err := store.GetFHIREndpointInfoUsingURLAndRequestedVersion(ctx, endpointInfo1.URL, endpointInfo1.RequestedFhirVersion)
 	if err != nil {
 		t.Errorf("Error getting fhir endpointInfo: %s", err.Error())
 	}
@@ -122,7 +122,7 @@ func Test_PersistFHIREndpointMetadata(t *testing.T) {
 		t.Errorf("retrieved endpointInfo is not equal to saved endpointInfo.")
 	}
 
-	e2, err := store.GetFHIREndpointInfoUsingURL(ctx, endpointInfo2.URL)
+	e2, err := store.GetFHIREndpointInfoUsingURLAndRequestedVersion(ctx, endpointInfo2.URL, endpointInfo2.RequestedFhirVersion)
 	if err != nil {
 		t.Errorf("Error getting fhir endpointInfo: %s", err.Error())
 	}
@@ -162,7 +162,7 @@ func Test_PersistFHIREndpointMetadata(t *testing.T) {
 		t.Errorf("Error updating fhir endpointInfo metadata ID: %s", err.Error())
 	}
 
-	e1, err = store.GetFHIREndpointInfoUsingURL(ctx, endpointInfo1.URL)
+	e1, err = store.GetFHIREndpointInfoUsingURLAndRequestedVersion(ctx, endpointInfo1.URL, endpointInfo1.RequestedFhirVersion)
 	if err != nil {
 		t.Errorf("Error getting fhir endpointInfo: %s", err.Error())
 	}
@@ -236,7 +236,7 @@ func Test_PersistFHIREndpointMetadata(t *testing.T) {
 		t.Errorf("Error updating fhir endpointInfo: %s", err.Error())
 	}
 
-	e1, err = store.GetFHIREndpointInfoUsingURL(ctx, endpointInfo1.URL)
+	e1, err = store.GetFHIREndpointInfoUsingURLAndRequestedVersion(ctx, endpointInfo1.URL, endpointInfo1.RequestedFhirVersion)
 	if err != nil {
 		t.Errorf("Error getting fhir endpointInfo: %s", err.Error())
 	}

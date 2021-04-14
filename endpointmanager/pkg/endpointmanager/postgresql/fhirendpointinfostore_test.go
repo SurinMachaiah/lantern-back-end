@@ -101,11 +101,9 @@ func Test_PersistFHIREndpointInfo(t *testing.T) {
 		t.Errorf("Error adding fhir endpointInfo: %+v", err)
 	}
 
-	endpointInfo1.RequestedFhirVersion = "null
-
 	// retrieve endpointInfos
 
-	e1, err := store.GetFHIREndpointInfoUsingURL(ctx, endpoint1.URL)
+	e1, err := store.GetFHIREndpointInfoUsingURLAndRequestedVersion(ctx, endpoint1.URL, endpointInfo1.RequestedFhirVersion)
 	if err != nil {
 		t.Errorf("Error getting fhir endpointInfo: %s", err.Error())
 	}
@@ -113,7 +111,7 @@ func Test_PersistFHIREndpointInfo(t *testing.T) {
 		t.Errorf("retrieved endpointInfo is not equal to saved endpointInfo.")
 	}
 
-	e2, err := store.GetFHIREndpointInfoUsingURL(ctx, endpoint2.URL)
+	e2, err := store.GetFHIREndpointInfoUsingURLAndRequestedVersion(ctx, endpoint2.URL, endpointInfo2.RequestedFhirVersion)
 	if err != nil {
 		t.Errorf("Error getting fhir endpointInfo: %s", err.Error())
 	}
