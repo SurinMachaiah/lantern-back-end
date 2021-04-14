@@ -175,7 +175,7 @@ func saveMsgInDB(message []byte, args *map[string]interface{}) error {
 		return fmt.Errorf("unable to cast context from arguments")
 	}
 
-	existingEndpt, err = store.GetFHIREndpointInfoUsingURL(ctx, fhirEndpoint.URL)
+	existingEndpt, err = store.GetFHIREndpointInfoUsingURLAndRequestedVersion(ctx, fhirEndpoint.URL, fhirEndpoint.RequestedFhirVersion)
 
 	if err == sql.ErrNoRows {
 

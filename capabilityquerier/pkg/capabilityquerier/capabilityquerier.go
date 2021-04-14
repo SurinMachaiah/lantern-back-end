@@ -141,7 +141,7 @@ func GetAndSendCapabilityStatement(ctx context.Context, args *map[string]interfa
 
 	var err error
 
-	endpt, err := qa.Store.GetFHIREndpointInfoUsingURL(ctx, qa.FhirURL)
+	endpt, err := qa.Store.GetFHIREndpointInfoUsingURLAndRequestedVersion(ctx, qa.FhirURL, "null")
 	var mimeTypes []string
 	if err == sql.ErrNoRows {
 		mimeTypes = []string{}
