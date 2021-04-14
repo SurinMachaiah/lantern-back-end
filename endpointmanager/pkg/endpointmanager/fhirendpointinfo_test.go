@@ -227,7 +227,7 @@ func Test_FHIREndpointInfoEqual(t *testing.T) {
 		IncludedFields:        testIncludedFields,
 		SupportedResources:    []string{"AllergyIntolerance", "Binary", "CarePlan"},
 		CapabilityStatement:   cs,
-		RequestedFhirVersion:  "null",
+		RequestedFhirVersion:  "",
 		CapabilityFhirVersion: "1.0.2",
 		Metadata:              endpointMetadata1}
 	includedFieldsCopy := make([]IncludedField, len(testIncludedFields))
@@ -255,7 +255,7 @@ func Test_FHIREndpointInfoEqual(t *testing.T) {
 		IncludedFields:        includedFieldsCopy,
 		SupportedResources:    []string{"AllergyIntolerance", "Binary", "CarePlan"},
 		CapabilityStatement:   cs,
-		RequestedFhirVersion:  "null",
+		RequestedFhirVersion:  "",
 		CapabilityFhirVersion: "1.0.2",
 		Metadata:              endpointMetadata2}
 

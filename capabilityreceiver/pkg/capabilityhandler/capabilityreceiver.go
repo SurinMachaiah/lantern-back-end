@@ -49,10 +49,6 @@ func formatMessage(message []byte) (*endpointmanager.FHIREndpointInfo, error) {
 		return nil, fmt.Errorf("%s: unable to cast Requested Fhir Version to string", url)
 	}
 
-	if len(requestedFhirVersion) == 0 {
-		requestedFhirVersion = "null"
-	}
-
 	// TODO: for some reason casting to []string doesn't work... need to do roundabout way
 	// Could be investigated further
 	var mimeTypes []string
@@ -116,13 +112,6 @@ func formatMessage(message []byte) (*endpointmanager.FHIREndpointInfo, error) {
 		fhirVersion, _ = capStat.GetFHIRVersion()
 	}
 
-	var capStatVersion string
-	if len(fhirVersion) > 0 {
-		capStatVersion = fhirVersion
-	} else {
-		capStatVersion = "null"
-	}
-
 	validator := validation.ValidatorForFHIRVersion(fhirVersion)
 
 	validationObj := validator.RunValidation(capStat, httpResponse, mimeTypes, fhirVersion, tlsVersion, smarthttpResponse)
@@ -148,7 +137,7 @@ func formatMessage(message []byte) (*endpointmanager.FHIREndpointInfo, error) {
 		SupportedResources:    supportedResources,
 		Metadata:              FHIREndpointMetadata,
 		RequestedFhirVersion:  requestedFhirVersion,
-		CapabilityFhirVersion: capStatVersion,
+		CapabilityFhirVersion: fhirVersion,
 	}
 
 	return &fhirEndpoint, nil
