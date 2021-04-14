@@ -234,7 +234,7 @@ func (s *Store) GetFHIREndpointInfoUsingURLAndRequestedVersion(ctx context.Conte
 		metadata_id,
 		requested_fhir_version,
 		capability_fhir_version
-	FROM fhir_endpoints_info WHERE fhir_endpoints_info.url = $1 AND fhir_endpoints_info.requested_version = $2`
+	FROM fhir_endpoints_info WHERE fhir_endpoints_info.url = $1 AND fhir_endpoints_info.requested_fhir_version = $2`
 
 	row := s.DB.QueryRowContext(ctx, sqlStatementInfo, url, requestedVersion)
 
