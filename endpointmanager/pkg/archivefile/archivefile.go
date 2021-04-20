@@ -313,7 +313,7 @@ func getHistory(ctx context.Context, args *map[string]interface{}) error {
 	}
 
 	// Get all rows in the history table between given dates
-	historyQuery := `SELECT url, updated_at, operation, capability_statement->>'fhirVersion', tls_version, mime_types FROM fhir_endpoints_info_history
+	historyQuery := `SELECT url, updated_at, operation, capability_fhir_version, tls_version, mime_types FROM fhir_endpoints_info_history
 		WHERE updated_at between '` + ha.dateStart + `' AND '` + ha.dateEnd + `' AND url=$1 ORDER BY updated_at`
 	historyRows, err := ha.store.DB.QueryContext(ctx, historyQuery, ha.fhirURL)
 	if err != nil {
