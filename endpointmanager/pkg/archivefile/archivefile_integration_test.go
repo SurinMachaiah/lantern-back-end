@@ -33,15 +33,17 @@ var workerDur int
 var numWorkers int
 
 var testFhirEndpointInfo = endpointmanager.FHIREndpointInfo{
-	URL:        "http://example.com/DTSU2/",
-	MIMETypes:  []string{"application/json+fhir"},
-	TLSVersion: "TLS 1.2",
+	URL:                   "http://example.com/DTSU2/",
+	MIMETypes:             []string{"application/json+fhir"},
+	TLSVersion:            "TLS 1.2",
+	CapabilityFhirVersion: "1.0.2",
 }
 
 var testFhirEndpointInfo2 = endpointmanager.FHIREndpointInfo{
-	URL:        "http://example.com/DTSU2/",
-	MIMETypes:  []string{"application/fhir+json"},
-	TLSVersion: "TLS 1.3",
+	URL:                   "http://example.com/DTSU2/",
+	MIMETypes:             []string{"application/fhir+json"},
+	TLSVersion:            "TLS 1.3",
+	CapabilityFhirVersion: "1.0.2",
 }
 
 var testFhirEndpoint = endpointmanager.FHIREndpoint{
