@@ -269,6 +269,18 @@ func Test_FHIREndpointInfoEqual(t *testing.T) {
 	}
 	endpointInfo2.ID = endpointInfo1.ID
 
+	endpointInfo2.CapabilityFhirVersion = "3.0.2"
+	if endpointInfo1.Equal(endpointInfo2) {
+		t.Errorf("Expect endpointInfo 1 to not equal endpointInfo 2. capability fhir versions should be different. %s vs %s", endpointInfo1.CapabilityFhirVersion, endpointInfo2.CapabilityFhirVersion)
+	}
+	endpointInfo2.CapabilityFhirVersion = endpointInfo1.CapabilityFhirVersion
+
+	endpointInfo2.RequestedFhirVersion = "3.0.2"
+	if endpointInfo1.Equal(endpointInfo2) {
+		t.Errorf("Expect endpointInfo 1 to not equal endpointInfo 2. requested fhir versions should be different. %s vs %s", endpointInfo1.RequestedFhirVersion, endpointInfo2.RequestedFhirVersion)
+	}
+	endpointInfo2.RequestedFhirVersion = endpointInfo1.RequestedFhirVersion
+
 	endpointInfo2.URL = "other"
 	if endpointInfo1.Equal(endpointInfo2) {
 		t.Errorf("Expect endpointInfo 1 to not equal endpointInfo 2. URL should be different. %s vs %s", endpointInfo1.URL, endpointInfo2.URL)

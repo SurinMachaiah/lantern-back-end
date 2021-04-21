@@ -157,7 +157,7 @@ func Test_PersistFHIREndpointMetadata(t *testing.T) {
 		t.Errorf("Error adding fhir endpointMetadata: %s", err.Error())
 	}
 
-	err = store.UpdateMetadataIDInfo(ctx, metadataID1, endpointInfo1.URL)
+	err = store.UpdateMetadataIDInfo(ctx, metadataID1, endpointInfo1.ID)
 	if err != nil {
 		t.Errorf("Error updating fhir endpointInfo metadata ID: %s", err.Error())
 	}
@@ -171,7 +171,6 @@ func Test_PersistFHIREndpointMetadata(t *testing.T) {
 	}
 
 	// check history table
-
 	var count int
 
 	// check insertions

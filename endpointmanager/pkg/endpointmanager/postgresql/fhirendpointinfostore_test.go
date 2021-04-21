@@ -74,6 +74,18 @@ func Test_PersistFHIREndpointInfo(t *testing.T) {
 		RequestedFhirVersion:  "",
 		CapabilityFhirVersion: "1.0.2",
 		Metadata:              endpointMetadata1}
+
+	var endpointInfo1RequestedVersion = &endpointmanager.FHIREndpointInfo{
+		URL:                   endpoint1.URL,
+		VendorID:              cerner.ID,
+		TLSVersion:            "TLS 1.1",
+		MIMETypes:             []string{"application/json+fhir"},
+		CapabilityStatement:   cs,
+		SMARTResponse:         nil,
+		RequestedFhirVersion:  "1.0.0",
+		CapabilityFhirVersion: "1.0.2",
+		Metadata:              endpointMetadata1}
+
 	var endpointInfo2 = &endpointmanager.FHIREndpointInfo{
 		URL:                   endpoint2.URL,
 		TLSVersion:            "TLS 1.2",
@@ -99,6 +111,18 @@ func Test_PersistFHIREndpointInfo(t *testing.T) {
 	err = store.AddFHIREndpointInfo(ctx, endpointInfo2, metadataID)
 	if err != nil {
 		t.Errorf("Error adding fhir endpointInfo: %+v", err)
+	}
+
+	// Add endpointInfo1 again but with different requested version
+	// Metadata must be added right now, but after this is fixed remove the metadata insert below:
+	metadataIDRV, err := store.AddFHIREndpointMetadata(ctx, endpointInfo1RequestedVersion.Metadata)
+	if err != nil {
+		t.Errorf("Error adding fhir endpointMetadata: %s", err.Error())
+	}
+
+	err = store.AddFHIREndpointInfo(ctx, endpointInfo1RequestedVersion, metadataIDRV)
+	if err != nil {
+		t.Errorf("Error adding fhir endpointInfo: %s", err.Error())
 	}
 
 	// retrieve endpointInfos
@@ -133,6 +157,34 @@ func Test_PersistFHIREndpointInfo(t *testing.T) {
 	}
 	if !eID2.Equal(endpointInfo2) {
 		t.Errorf("retrieved endpointInfo is not equal to saved endpointInfo.")
+	}
+
+	// Retrieve endpointInfo1 with different requested version
+	e1rv, err := store.GetFHIREndpointInfoUsingURLAndRequestedVersion(ctx, endpoint1.URL, endpointInfo1RequestedVersion.RequestedFhirVersion)
+	if err != nil {
+		t.Errorf("Error getting fhir endpointInfo: %s", err.Error())
+	}
+	if !e1rv.Equal(endpointInfo1RequestedVersion) {
+		t.Errorf("retrieved endpointInfo is not equal to saved endpointInfoRequestedVersion.")
+	}
+	if e1rv.Equal(endpointInfo1) {
+		t.Errorf("retrieved endpointInfo with different requested version should not be equal to saved endpointInfo1.")
+	}
+
+	// Get array of fhir endpointInfos with endpoint1 URL
+	eArr, err := store.GetFHIREndpointInfosUsingURL(ctx, endpoint1.URL)
+	if err != nil {
+		t.Errorf("Error getting fhir endpointInfos: %s", err.Error())
+	}
+
+	if len(eArr) != 2 {
+		t.Errorf("Should be two fhir endpointInfo entries for endpoint1 URL, got %d", len(eArr))
+	}
+
+	for _, e := range eArr {
+		if e.ID != e1.ID && e.ID != e1rv.ID {
+			t.Errorf("Both fhir endpointInfo entries should have id %d or %d, instead entry has ID %d", e1.ID, e1rv.ID, e.ID)
+		}
 	}
 
 	// update endpointInfo and add update to metadata table
@@ -196,6 +248,22 @@ func Test_PersistFHIREndpointInfo(t *testing.T) {
 		t.Errorf("did not expected endpoint in db")
 	}
 
+	err = store.DeleteFHIREndpointInfo(ctx, endpointInfo1RequestedVersion)
+	if err != nil {
+		t.Errorf("Error deleting fhir endpointInfo: %s", err.Error())
+	}
+
+	_, err = store.GetFHIREndpointInfo(ctx, endpointInfo1RequestedVersion.ID) // ensure we deleted the entry
+	if err == nil {
+		t.Errorf("did not expected endpoint in db")
+	}
+
+	// Need to do this now to pass tests, when requested version entries no longer have metadata entries, remove this delete statement
+	_, err = store.DB.Exec("DELETE FROM fhir_endpoints_metadata WHERE id=$1;", metadataIDRV)
+	if err != nil {
+		t.Errorf("Error deleting requested version metadata from metadata table")
+	}
+
 	_, err = store.GetFHIREndpointInfo(ctx, endpointInfo2.ID) // ensure we haven't deleted all entries
 	if err != nil {
 		t.Errorf("error retrieving endpointInfo2 after deleting endpointInfo1: %s", err.Error())
@@ -225,6 +293,15 @@ func Test_PersistFHIREndpointInfo(t *testing.T) {
 	}
 	if count != 1 {
 		t.Errorf("expected 1 insertion for endpointInfo1. Got %d.", count)
+	}
+
+	rows = store.DB.QueryRow("SELECT COUNT(*) FROM fhir_endpoints_info_history WHERE id=$1 AND operation='I';", endpointInfo1RequestedVersion.ID)
+	err = rows.Scan(&count)
+	if err != nil {
+		t.Errorf("history count for insertions: %s", err.Error())
+	}
+	if count != 1 {
+		t.Errorf("expected 1 insertion for endpointInfo1RequestedVersion. Got %d.", count)
 	}
 
 	rows = store.DB.QueryRow("SELECT COUNT(*) FROM fhir_endpoints_metadata WHERE url=$1;", endpointInfo1.URL)
