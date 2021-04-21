@@ -234,7 +234,7 @@ func saveMsgInDB(message []byte, args *map[string]interface{}) error {
 				return err
 			}
 
-			err = store.UpdateMetadataIDInfo(ctx, metadataID, existingEndpt.URL)
+			err = store.UpdateMetadataIDInfo(ctx, metadataID, existingEndpt.ID)
 			if err != nil {
 				return err
 			}

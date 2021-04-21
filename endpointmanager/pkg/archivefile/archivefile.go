@@ -2,7 +2,6 @@ package archivefile
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"math"
 	"sort"
@@ -329,7 +328,7 @@ func getHistory(ctx context.Context, args *map[string]interface{}) error {
 	defer historyRows.Close()
 	for historyRows.Next() {
 		var e historyEntry
-		var fhirVersion sql.NullString
+		var fhirVersion string
 		var err = historyRows.Scan(
 			&e.URL,
 			&e.UpdatedAt,
@@ -347,11 +346,11 @@ func getHistory(ctx context.Context, args *map[string]interface{}) error {
 			return nil
 		}
 
-		if !fhirVersion.Valid {
-			e.FHIRVersion = ""
+		if fhirVersion == "" {
+			e.FHIRVersion = fhirVersion
 			e.FHIRVersionError = fmt.Errorf("received NULL FHIR version")
 		} else {
-			e.FHIRVersion = fhirVersion.String
+			e.FHIRVersion = fhirVersion
 			e.FHIRVersionError = nil
 		}
 
