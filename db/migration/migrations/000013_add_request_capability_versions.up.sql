@@ -1,6 +1,8 @@
 BEGIN;
 
 DROP TRIGGER IF EXISTS add_fhir_endpoint_info_history_trigger ON fhir_endpoints_info;
+DROP VIEW IF EXISTS endpoint_export;
+DROP VIEW IF EXISTS org_mapping;
 
 ALTER TABLE fhir_endpoints_info 
 ADD COLUMN requested_fhir_version VARCHAR(500);
@@ -13,6 +15,8 @@ ADD COLUMN capability_fhir_version VARCHAR(500);
 
 ALTER TABLE fhir_endpoints_info_history 
 ADD COLUMN capability_fhir_version VARCHAR(500);
+
+ALTER TABLE fhir_endpoints_info DROP CONSTRAINT fhir_endpoints_info_url_key;
 
 CREATE OR REPLACE FUNCTION populate_capability_fhir_version_info() RETURNS VOID as $$
     DECLARE

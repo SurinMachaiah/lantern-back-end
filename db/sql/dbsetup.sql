@@ -168,7 +168,7 @@ CREATE TABLE fhir_endpoints_info (
     id                      SERIAL PRIMARY KEY,
     healthit_product_id     INT REFERENCES healthit_products(id) ON DELETE SET NULL,
     vendor_id               INT REFERENCES vendors(id) ON DELETE SET NULL, 
-    url                     VARCHAR(500) UNIQUE,
+    url                     VARCHAR(500),
     tls_version             VARCHAR(500),
     mime_types              VARCHAR(500)[],
     capability_statement    JSONB,

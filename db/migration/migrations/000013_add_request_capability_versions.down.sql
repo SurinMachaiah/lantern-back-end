@@ -1,9 +1,22 @@
 BEGIN;
+DROP VIEW IF EXISTS endpoint_export;
+DROP VIEW IF EXISTS org_mapping;
+
+CREATE OR REPLACE FUNCTION delete_requested_version_entries() RETURNS VOID as $$
+    BEGIN
+        DELETE FROM fhir_endpoints_info WHERE requested_fhir_version != '';
+        DELETE FROM fhir_endpoints_info_history WHERE requested_fhir_version != '';
+    END;
+$$ LANGUAGE plpgsql;
+
+SELECT delete_requested_version_entries();
 
 ALTER TABLE fhir_endpoints_info DROP COLUMN IF EXISTS requested_fhir_version; 
 ALTER TABLE fhir_endpoints_info_history DROP COLUMN IF EXISTS requested_fhir_version; 
 ALTER TABLE fhir_endpoints_info DROP COLUMN IF EXISTS capability_fhir_version;
 ALTER TABLE fhir_endpoints_info_history DROP COLUMN IF EXISTS capability_fhir_version;
+
+ALTER TABLE fhir_endpoints_info ADD UNIQUE (url);
 
 CREATE or REPLACE VIEW org_mapping AS
 SELECT endpts.url, endpts.list_source, vendors.name as vendor_name, endpts.organization_names AS endpoint_names, orgs.name AS ORGANIZATION_NAME, orgs.secondary_name AS ORGANIZATION_SECONDARY_NAME, orgs.taxonomy, orgs.Location->>'state' AS STATE, orgs.Location->>'zipcode' AS ZIPCODE, links.confidence AS MATCH_SCORE
