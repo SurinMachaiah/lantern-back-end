@@ -206,7 +206,7 @@ func (s *Store) GetFHIREndpointInfoValidation(ctx context.Context, e *endpointma
 }
 
 // AddFHIREndpointInfo adds the FHIREndpointInfo to the database.
-func (s *Store) AddFHIREndpointInfo(ctx context.Context, e *endpointmanager.FHIREndpointInfo, metadataID int) error {
+func (s *Store) AddFHIREndpointInfo(ctx context.Context, e *endpointmanager.FHIREndpointInfo, metadataID int, valResID int) error {
 	var err error
 	var capabilityStatementJSON []byte
 
@@ -260,7 +260,7 @@ func (s *Store) AddFHIREndpointInfo(ctx context.Context, e *endpointmanager.FHIR
 }
 
 // UpdateFHIREndpointInfo updates the FHIREndpointInfo in the database using the FHIREndpointInfo's database id as the key.
-func (s *Store) UpdateFHIREndpointInfo(ctx context.Context, e *endpointmanager.FHIREndpointInfo, metadataID int) error {
+func (s *Store) UpdateFHIREndpointInfo(ctx context.Context, e *endpointmanager.FHIREndpointInfo, metadataID int, valResID int) error {
 	var err error
 	var capabilityStatementJSON []byte
 
