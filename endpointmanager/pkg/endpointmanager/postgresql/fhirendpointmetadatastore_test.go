@@ -234,7 +234,7 @@ func Test_PersistFHIREndpointMetadata(t *testing.T) {
 		t.Errorf("Error adding update to fhir endpointMetadata: %s", err.Error())
 	}
 
-	err = store.UpdateFHIREndpointInfo(ctx, endpointInfo1, metadataID)
+	err = store.UpdateFHIREndpointInfo(ctx, endpointInfo1, metadataID, valResID1)
 	if err != nil {
 		t.Errorf("Error updating fhir endpointInfo: %s", err.Error())
 	}
