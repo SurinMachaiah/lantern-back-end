@@ -116,7 +116,11 @@ func createJobs(ctx context.Context,
 	}
 }
 
+<<<<<<< HEAD
 // addToValidationTableHistory gets the history table data for a given URL and creates the
+=======
+// addToValidationTable gets the history table data for a given URL and creates the
+>>>>>>> 52d155f (Fix issue where migration validation script was not giving most recent history and current info rows the same validation result ID)
 // validation table rows based on each row's capability statement
 func addToValidationTableHistory(ctx context.Context, args *map[string]interface{}) error {
 	wa, ok := (*args)["workerArgs"].(workerArgs)
@@ -212,6 +216,7 @@ func addToValidationTableInfo(ctx context.Context, args *map[string]interface{})
 		return nil
 	}
 
+<<<<<<< HEAD
 	selectHistory := `SELECT validation_result_id FROM fhir_endpoints_info_history
 		WHERE url = $1
 		ORDER BY entered_at DESC
@@ -219,13 +224,31 @@ func addToValidationTableInfo(ctx context.Context, args *map[string]interface{})
 	valResRow := wa.store.DB.QueryRowContext(ctx, selectHistory, wa.fhirURL)
 	valResID := 0
 	err := valResRow.Scan(&valResID)
+=======
+	selectHistory := `SELECT endpt_history.validation_result_id,
+		endpts_info.updated_at
+	FROM fhir_endpoints_info_history AS endpt_history
+	LEFT JOIN fhir_endpoints_info AS endpts_info ON endpts_info.updated_at = endpt_history.updated_at
+	AND endpts_info.url = endpt_history.url
+	WHERE endpts_info.url=$1`
+	valResRow := wa.store.DB.QueryRowContext(ctx, selectHistory, wa.fhirURL)
+	valResID := 0
+	var updatedTime time.Time
+	err := valResRow.Scan(&valResID, &updatedTime)
+>>>>>>> 52d155f (Fix issue where migration validation script was not giving most recent history and current info rows the same validation result ID)
 	if err != nil {
 		log.Warnf("Failed to get the validation_result_id. Error: %s", err)
 		return returnResult(wa)
 	}
+<<<<<<< HEAD
 	_, err = updateInfoValResStatement.ExecContext(ctx, valResID, wa.fhirURL)
 	if err != nil {
 		log.Warnf("Error while updating the row of fhir_endpoints_info table for URL %s. Error: %s", wa.fhirURL, err)
+=======
+	_, err = updateInfoValResStatement.ExecContext(ctx, valResID, updatedTime, wa.fhirURL)
+	if err != nil {
+		log.Warnf("Error while updating the row of the table for URL %s at %s. Error: %s", wa.fhirURL, updatedTime.String(), err)
+>>>>>>> 52d155f (Fix issue where migration validation script was not giving most recent history and current info rows the same validation result ID)
 	}
 	return returnResult(wa)
 }
