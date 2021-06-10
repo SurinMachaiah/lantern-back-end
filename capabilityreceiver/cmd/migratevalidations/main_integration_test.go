@@ -74,9 +74,10 @@ func Test_addToValidationTableHistory(t *testing.T) {
 			capability_statement,
 			tls_version,
 			mime_types,
+			metadata_id,
 			updated_at
 		)
-		VALUES ($1, $2, $3, $4, $5, $6)`
+		VALUES ($1, $2, $3, $4, $5, $6, $7)`
 
 	getFHIREndpointInfoStatement := `
 		SELECT updated_at, validation_result_id
@@ -108,12 +109,12 @@ func Test_addToValidationTableHistory(t *testing.T) {
 	mimeTypes := []string{"application/json+fhir"}
 	firstTime := time.Now().UTC().Round(time.Microsecond)
 	url1 := "www.testurl.com/cerner/DSTU2"
-	_, err := store.DB.ExecContext(ctx, addFHIREndpointInfoStatement, url1, "I", capStat1, tlsVersion, pq.Array(mimeTypes), firstTime)
+	_, err := store.DB.ExecContext(ctx, addFHIREndpointInfoStatement, url1, "I", capStat1, tlsVersion, pq.Array(mimeTypes), metadataID1, firstTime)
 	th.Assert(t, err == nil, fmt.Sprintf("Error when adding to the database %s", err))
 
 	secondTime := time.Now().UTC().Round(time.Microsecond)
 	url2 := "www.testurl.com/epic/DSTU2"
-	_, err = store.DB.ExecContext(ctx, addFHIREndpointInfoStatement, url2, "I", capStat2, tlsVersion, pq.Array(mimeTypes), secondTime)
+	_, err = store.DB.ExecContext(ctx, addFHIREndpointInfoStatement, url2, "I", capStat2, tlsVersion, pq.Array(mimeTypes), metadataID2, secondTime)
 	th.Assert(t, err == nil, fmt.Sprintf("Error when adding to the database again %s", err))
 
 	resultCh := make(chan Result)
@@ -164,7 +165,7 @@ func Test_addToValidationTableHistory(t *testing.T) {
 
 	// Add another instance of the second URL
 	thirdTime := time.Now().UTC().Round(time.Microsecond)
-	_, err = store.DB.ExecContext(ctx, addFHIREndpointInfoStatement, url2, "U", capStat2, tlsVersion, pq.Array(mimeTypes), thirdTime)
+	_, err = store.DB.ExecContext(ctx, addFHIREndpointInfoStatement, url2, "U", capStat2, tlsVersion, pq.Array(mimeTypes), metadataID2, thirdTime)
 	th.Assert(t, err == nil, fmt.Sprintf("Error when adding to the database third time %s", err))
 
 	// Make sure all instances of that are updated
