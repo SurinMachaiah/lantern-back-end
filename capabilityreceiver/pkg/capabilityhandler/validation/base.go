@@ -25,7 +25,9 @@ func (bv *baseVal) RunValidation(capStat capabilityparser.CapabilityStatement,
 	mimeTypes []string,
 	fhirVersion string,
 	tlsVersion string,
-	smartHTTPRsp int) endpointmanager.Validation {
+	smartHTTPRsp int,
+	requestedFhirVersion string,
+	defaultFhirVersion string) endpointmanager.Validation {
 	var validationResults []endpointmanager.Rule
 	validationWarnings := make([]endpointmanager.Rule, 0)
 
@@ -245,6 +247,11 @@ func (bv *baseVal) UniqueResources(capStat capabilityparser.CapabilityStatement)
 }
 
 func (bv *baseVal) SearchParamsUnique(capStat capabilityparser.CapabilityStatement) endpointmanager.Rule {
+	var ruleError endpointmanager.Rule
+	return ruleError
+}
+
+func (bv *baseVal) VersionResponseValid(fhirVersion string, defaultFhirVersion string) endpointmanager.Rule {
 	var ruleError endpointmanager.Rule
 	return ruleError
 }
