@@ -1,4 +1,5 @@
 # Capability Module
+library(reactable)
 
 capabilitymodule_UI <- function(id) {
 
@@ -9,7 +10,7 @@ capabilitymodule_UI <- function(id) {
     p("This is the list of FHIR resource types reported by the capability statements from the endpoints. This reflects the most recent successful response only. Endpoints which are down, unreachable during the last query or have not returned a valid capability statement, are not included in this list."),
     fluidRow(
       column(width = 5,
-             tableOutput(ns("resource_op_table"))),
+             reactable::reactableOutput(ns("resource_op_table"))),
       column(width = 7,
              h4("Resource Count"),
              uiOutput(ns("resource_full_plot"))
@@ -116,9 +117,28 @@ capabilitymodule <- function(  #nolint
     op_table
   })
 
-  output$resource_op_table <- renderTable(
-    select_table_format()
-  )
+  #output$resource_op_table <- renderTable(
+  #  select_table_format()
+  #)
+  
+ output$resource_op_table <- reactable::renderReactable({
+     reactable(
+              select_table_format(),
+              columns = list(
+                Endpoints = colDef(
+                  aggregate = "sum",
+                  format = list(aggregated = colFormat(prefix = "Total: "))
+                )
+              ),
+              groupBy ="Resource",
+              sortable = TRUE,
+              searchable = TRUE,
+              striped = TRUE,
+              showSortIcon = TRUE,
+              defaultPageSize = 50
+
+     )
+  })
 
   select_operations_count <- reactive({
     select_operations() %>%
