@@ -83,7 +83,7 @@ func GetListOfEndpointsKnownSource(rawendpts []byte, source string, listURL stri
 		}
 		result = CernerList{}.GetEndpoints(cernerList, listURL)
 	} else if source == "Epic" {
-		epicList, err := convertInterfaceToList(initialList, "Entries")
+		epicList, err := convertInterfaceToList(initialList, "entry")
 		if err != nil {
 			return result, fmt.Errorf("epic list not given in EPIC format: %s", err)
 		}
