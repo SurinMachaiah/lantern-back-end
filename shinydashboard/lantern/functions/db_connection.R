@@ -43,5 +43,5 @@ endpoint_export_tbl <- db_tables$endpoint_export %>%
   mutate(vendor_name = na_if(vendor_name, "")) %>%
   tidyr::replace_na(list(vendor_name = "Unknown")) %>%
   mutate(fhir_version = if_else(fhir_version == "", "Unknown", fhir_version)) %>%
-  mutate(endpoint_names = gsub("(\"|\"|\\{|\\})", '', as.character(endpoint_names))) %>%
-  mutate(format = gsub("(\"|\"|\\[|\\])", '', as.character(format)))
+  mutate(endpoint_names = gsub("(\"|\"|\\{|\\})", "", as.character(endpoint_names))) %>%
+  mutate(format = gsub("(\"|\"|\\[|\\])", "", as.character(format)))
