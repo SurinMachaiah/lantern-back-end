@@ -30,10 +30,11 @@ get_endpoint_totals_list <- function(db_tables) {
 get_fhir_endpoints_tbl <- function() {
   ret_tbl <- endpoint_export_tbl %>%
     distinct(url, vendor_name, fhir_version, mime_types, http_response, requested_fhir_version, .keep_all = TRUE) %>%
-    select(url, endpoint_names, info_created, list_source, vendor_name, fhir_version, format, http_response, response_time_seconds, smart_http_response, errors, availability, cap_stat_exists) %>%
+    select(url, endpoint_names, info_created, list_source, vendor_name, fhir_version, format, cap_stat_exists, http_response, response_time_seconds, smart_http_response, errors, availability, cap_stat_exists) %>%
     left_join(app$http_response_code_tbl %>% select(code, label),
       by = c("http_response" = "code")) %>%
-      mutate(status = if_else(http_response == 200, paste("Success:", http_response, "-", label), paste("Failure:", http_response, "-", label)))
+      mutate(status = if_else(http_response == 200, paste("Success:", http_response, "-", label), paste("Failure:", http_response, "-", label))) %>%
+      mutate(cap_stat_exists = tolower(as.character(cap_stat_exists)))
 }
 
 # get the endpoint tally by http_response received
