@@ -61,10 +61,17 @@ func Test_GetEndpointsFromFilepath(t *testing.T) {
 	var endpointsCount = len(endpoints.Entries)
 	th.Assert(t, endpointsCount == expectedEndpoints, fmt.Sprintf("Number of endpoints read from resource file incorrect, got: %d, want: %d.", endpointsCount, expectedEndpoints))
 
-	// test epic list
+	// test epic DSTU2 list
 
 	expectedEndpoints = 416
-	endpoints, _ = GetEndpointsFromFilepath("../../resources/EpicEndpointSources.json", "Epic", "")
+	endpoints, _ = GetEndpointsFromFilepath("../../resources/EpicEndpointSourcesDSTU2.json", "FHIR", "")
+	endpointsCount = len(endpoints.Entries)
+	th.Assert(t, endpointsCount == expectedEndpoints, fmt.Sprintf("Number of endpoints read from epic file incorrect, got: %d, want: %d.", endpointsCount, expectedEndpoints))
+
+	// test epic DSTU2 list
+
+	expectedEndpoints = 265
+	endpoints, _ = GetEndpointsFromFilepath("../../resources/EpicEndpointSourcesR4.json", "FHIR", "")
 	endpointsCount = len(endpoints.Entries)
 	th.Assert(t, endpointsCount == expectedEndpoints, fmt.Sprintf("Number of endpoints read from epic file incorrect, got: %d, want: %d.", endpointsCount, expectedEndpoints))
 
@@ -94,9 +101,9 @@ func Test_GetListOfEndpointsKnownSource(t *testing.T) {
 
 	// test epic list
 
-	epicResult, err := GetListOfEndpointsKnownSource(testEpic, "Epic", "")
+	epicResult, err := GetListOfEndpointsKnownSource(testEpic, "FHIR", "https://open.epic.com/Endpoints/DSTU2")
 	th.Assert(t, err == nil, err)
-	th.Assert(t, epicResult.Entries[0].ListSource == "Epic", fmt.Sprintf("The list source should have been Epic, it instead returned %s", epicResult.Entries[0].ListSource))
+	th.Assert(t, epicResult.Entries[0].ListSource == "https://open.epic.com/Endpoints/DSTU2", fmt.Sprintf("The list source should have been https://open.epic.com/Endpoints/DSTU2, it instead returned %s", epicResult.Entries[0].ListSource))
 
 	// test lantern list
 
