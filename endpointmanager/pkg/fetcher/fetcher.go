@@ -30,7 +30,7 @@ type ListOfEndpoints struct {
 }
 
 // Source is a slice of the known endpoint source lists
-var sources = []string{"Cerner", "Epic", "Lantern", "FHIR"}
+var sources = []string{"Cerner", "Lantern", "FHIR"}
 
 // Endpoints is an interface that every endpoint list can implement to parse their list into
 // the universal format ListOfEndpoints
@@ -82,12 +82,6 @@ func GetListOfEndpointsKnownSource(rawendpts []byte, source string, listURL stri
 			return result, fmt.Errorf("cerner list not given in Cerner format: %s", err)
 		}
 		result = CernerList{}.GetEndpoints(cernerList, listURL)
-	} else if source == "Epic" {
-		epicList, err := convertInterfaceToList(initialList, "entry")
-		if err != nil {
-			return result, fmt.Errorf("epic list not given in EPIC format: %s", err)
-		}
-		result = EpicList{}.GetEndpoints(epicList, listURL)
 	} else if source == "Lantern" {
 		lanternList, err := convertInterfaceToList(initialList, "Endpoints")
 		if err != nil {
