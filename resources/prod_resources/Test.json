@@ -1,0 +1,8 @@
+{
+   "Entries":[
+       {
+          "OrganizationName":"XXX",
+          "FHIRPatientFacingURI":"https://fhir.careevolution.com/Master.Adapter1.WebClient/api/fhir-r4"
+       }
+   ]
+}

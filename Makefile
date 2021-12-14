@@ -33,8 +33,9 @@ clean_remote:
 update_source_data:
 	@cd ./scripts; chmod +rx query-endpoint-resources.sh; ./query-endpoint-resources.sh
 	@cd ./scripts; chmod +rx query-NPPES-resources.sh; ./query-NPPES-resources.sh
+	
 
-populatedb:
+populatedb: 
 	exec docker exec -it lantern-back-end_endpoint_manager_1 /etc/lantern/populatedb.sh
 
 backup_database:

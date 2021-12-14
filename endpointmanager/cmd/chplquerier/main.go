@@ -39,10 +39,11 @@ func main() {
 	}
 	versionString := string(version)
 	versionNum := strings.Split(versionString, "=")
-	userAgent := "LANTERN/" + versionNum[1]
+	userAgent := "LANTERN/" + versionNum[0]
 	log.Infof("user agent is %s", userAgent)
 
 	err = chplquerier.GetCHPLCriteria(ctx, store, client, userAgent)
+
 	helpers.FailOnError("", err)
 	err = chplquerier.GetCHPLVendors(ctx, store, client, userAgent)
 	helpers.FailOnError("", err)
